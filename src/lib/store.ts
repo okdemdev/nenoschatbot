@@ -1,29 +1,21 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { Node as ReactFlowNode } from 'reactflow';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
 }
 
-interface NodeData {
+export interface NodeData {
   label: string;
   content?: string;
-  type?: 'message' | 'question' | 'condition' | 'input' | 'timeout' | 'action';
+  type?: 'message' | 'condition' | 'timeout';
   timeout?: number;
   timeoutAction?: 'close' | 'transfer' | 'reminder';
   condition?: string;
-  actionType?: 'transfer_agent' | 'create_ticket' | 'send_email' | 'close_case';
-  department?: string;
-  responses?: string[];
+  conditionType?: string;
   onChange?: (newData: Partial<NodeData>) => void;
-}
-
-export interface Node<NodeData> {
-  id: string;
-  type: string;
-  position: { x: number; y: number };
-  data: NodeData;
 }
 
 export interface Edge {
@@ -33,12 +25,12 @@ export interface Edge {
 }
 
 interface FlowStore {
-  nodes: Node<NodeData>[];
+  nodes: ReactFlowNode<NodeData>[];
   edges: Edge[];
   knowledge: string;
   currentNodeId: string | null;
   messages: Message[];
-  setNodes: (nodes: Node<NodeData>[]) => void;
+  setNodes: (nodes: ReactFlowNode<NodeData>[]) => void;
   setEdges: (edges: Edge[]) => void;
   setKnowledge: (knowledge: string) => void;
   setCurrentNodeId: (id: string | null) => void;

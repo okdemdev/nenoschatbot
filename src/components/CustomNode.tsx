@@ -6,6 +6,33 @@ import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Textarea } from './ui/textarea';
 
+// Predefined conditions
+const CONDITIONS = {
+  user_says_yes: {
+    label: 'User says yes',
+    condition:
+      'user_response contains "yes" or user_response contains "da" or user_response contains "ok"',
+  },
+  user_says_no: {
+    label: 'User says no',
+    condition: 'user_response contains "no" or user_response contains "nu"',
+  },
+  user_is_angry: {
+    label: 'User is angry',
+    condition:
+      'user_response contains "!" or user_response contains "angry" or user_response contains "upset"',
+  },
+  user_wants_help: {
+    label: 'User needs help',
+    condition: 'user_response contains "help" or user_response contains "ajutor"',
+  },
+  user_wants_agent: {
+    label: 'User wants human agent',
+    condition:
+      'user_response contains "human" or user_response contains "agent" or user_response contains "operator"',
+  },
+};
+
 export function CustomNode({ data, isConnectable }) {
   return (
     <Card className="p-4 w-[300px] max-w-[400px]">
@@ -23,43 +50,72 @@ export function CustomNode({ data, isConnectable }) {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="message">Message</SelectItem>
-            <SelectItem value="question">Question</SelectItem>
             <SelectItem value="condition">Condition</SelectItem>
-            <SelectItem value="input">User Input</SelectItem>
             <SelectItem value="timeout">Timeout</SelectItem>
-            <SelectItem value="action">Action</SelectItem>
           </SelectContent>
         </Select>
-        <div className="max-h-[200px] overflow-y-auto">
-          <Textarea
-            value={data.content}
-            onChange={(e) => data.onChange?.({ content: e.target.value })}
-            placeholder={data.type === 'question' ? 'Enter your question...' : 'Node Content'}
-            className="min-h-[100px] text-sm resize-none"
-          />
-        </div>
+
         {data.type === 'message' && (
-          <Input
-            type="number"
-            value={data.timeout}
-            onChange={(e) => data.onChange?.({ timeout: parseInt(e.target.value) })}
-            placeholder="Timeout (seconds)"
-            className="mt-2 text-sm"
-          />
+          <div className="max-h-[200px] overflow-y-auto">
+            <Textarea
+              value={data.content}
+              onChange={(e) => data.onChange?.({ content: e.target.value })}
+              placeholder="Node Content"
+              className="min-h-[100px] text-sm resize-none"
+            />
+            <Input
+              type="number"
+              value={data.timeout}
+              onChange={(e) => data.onChange?.({ timeout: parseInt(e.target.value) })}
+              placeholder="Timeout (seconds)"
+              className="mt-2 text-sm"
+            />
+          </div>
         )}
+
         {data.type === 'condition' && (
           <div className="space-y-2">
-            <Input
-              value={data.condition}
-              onChange={(e) => data.onChange?.({ condition: e.target.value })}
-              placeholder="if user_response contains 'yes'"
-              className="text-sm"
-            />
-            <div className="text-xs text-muted-foreground">
-              Available variables: user_response, last_message, time_elapsed
+            <Select
+              value={data.conditionType}
+              onValueChange={(value) => {
+                const selectedCondition = CONDITIONS[value];
+                data.onChange?.({
+                  conditionType: value,
+                  condition: selectedCondition.condition,
+                  label: data.label || selectedCondition.label,
+                });
+              }}
+            >
+              <SelectTrigger className="text-sm">
+                <SelectValue placeholder="Select condition..." />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(CONDITIONS).map(([key, value]) => (
+                  <SelectItem key={key} value={key}>
+                    {value.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Show the actual condition for reference */}
+            {data.condition && (
+              <div className="text-xs text-muted-foreground mt-2 p-2 bg-secondary rounded">
+                Current condition: {data.condition}
+              </div>
+            )}
+
+            <div className="text-xs text-muted-foreground mt-2">
+              Available variables:
+              <ul className="mt-1 ml-4 list-disc">
+                <li>user_response - The last message from the user</li>
+                <li>last_message - The last message in the chat</li>
+                <li>time_elapsed - Time since last interaction</li>
+              </ul>
             </div>
           </div>
         )}
+
         {data.type === 'timeout' && (
           <div className="space-y-2">
             <Input
@@ -83,22 +139,6 @@ export function CustomNode({ data, isConnectable }) {
               </SelectContent>
             </Select>
           </div>
-        )}
-        {data.type === 'action' && (
-          <Select
-            value={data.actionType}
-            onValueChange={(value) => data.onChange?.({ actionType: value })}
-          >
-            <SelectTrigger className="text-sm">
-              <SelectValue placeholder="Select action..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="transfer_agent">Transfer to Agent</SelectItem>
-              <SelectItem value="create_ticket">Create Support Ticket</SelectItem>
-              <SelectItem value="send_email">Send Email</SelectItem>
-              <SelectItem value="close_case">Close Case</SelectItem>
-            </SelectContent>
-          </Select>
         )}
       </div>
       <Handle type="source" position={Position.Bottom} isConnectable={isConnectable} />

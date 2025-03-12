@@ -10,7 +10,7 @@ import ReactFlow, {
   applyEdgeChanges,
   applyNodeChanges,
   useKeyPress,
-  Node,
+  Node as ReactFlowNode,
   Edge,
   NodeChange,
   EdgeChange,
@@ -18,7 +18,7 @@ import ReactFlow, {
   SelectionMode,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { useFlowStore } from '@/lib/store';
+import { useFlowStore, NodeData } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
@@ -43,16 +43,6 @@ interface Message {
   content: string;
 }
 
-// Define the NodeData interface
-interface NodeData {
-  label: string;
-  content?: string;
-  type?: 'message' | 'question' | 'response';
-  timeout?: number;
-  responses?: string[];
-  onChange?: (newData: Partial<NodeData>) => void;
-}
-
 const flowTemplates = {
   inactivityFlow: {
     name: 'Inactivity Handler Flow',
@@ -60,81 +50,79 @@ const flowTemplates = {
       {
         id: 'welcome',
         type: 'custom',
-        position: { x: 100, y: 100 },
+        position: { x: 400, y: 50 },
         data: {
           label: 'Welcome Message',
-          content: 'Hello! Welcome to our support chat. How can I assist you today?',
+          content: 'Salut, cu ce te pot ajuta?',
           type: 'message',
-          timeout: 10, // 10 seconds timeout
+          timeout: 8,
         },
       },
       {
-        id: 'reminder',
+        id: 'checking',
         type: 'custom',
-        position: { x: 100, y: 250 },
+        position: { x: 400, y: 200 },
         data: {
-          label: 'Reminder Message',
-          content: 'Hello! Are you still there?',
-          type: 'question',
+          label: 'Checking Message',
+          content: 'Mai esti acolo?',
+          type: 'message',
+          timeout: 5,
         },
       },
       {
-        id: 'check-response',
+        id: 'daca-raspunde',
         type: 'custom',
-        position: { x: 100, y: 400 },
+        position: { x: 200, y: 350 },
         data: {
-          label: 'Check Response',
+          label: 'Daca Raspunde',
           type: 'condition',
-          condition: 'user_response contains "yes" or user_response contains "here"',
+          conditionType: 'user_says_yes',
+          condition:
+            'user_response contains "yes" or user_response contains "da" or user_response contains "ok"',
         },
       },
       {
-        id: 'continue-chat',
+        id: 'continue',
         type: 'custom',
-        position: { x: -100, y: 550 },
+        position: { x: 200, y: 500 },
         data: {
-          label: 'Continue Chat',
-          content: 'PERFECT! What can I help you with?',
+          label: 'Continue',
+          content: 'Super, spune cu ce te pot ajuta',
           type: 'message',
-          timeout: 15, // 15 seconds timeout
         },
       },
       {
-        id: 'close-chat',
+        id: 'inchide-daca-nu-raspunde',
         type: 'custom',
-        position: { x: 300, y: 550 },
+        position: { x: 600, y: 350 },
         data: {
-          label: 'Close Chat',
-          type: 'action',
-          actionType: 'close_case',
+          label: 'Inchide daca nu raspunde',
+          type: 'timeout',
+          timeout: 5,
+          timeoutAction: 'close',
         },
       },
     ],
     edges: [
       {
-        id: 'welcome-to-reminder',
+        id: 'welcome-to-checking',
         source: 'welcome',
-        target: 'reminder',
+        target: 'checking',
       },
       {
-        id: 'reminder-to-check',
-        source: 'reminder',
-        target: 'check-response',
+        id: 'checking-to-condition',
+        source: 'checking',
+        target: 'daca-raspunde',
       },
       {
-        id: 'check-to-continue',
-        source: 'check-response',
-        target: 'continue-chat',
+        id: 'checking-to-timeout',
+        source: 'checking',
+        target: 'inchide-daca-nu-raspunde',
       },
       {
-        id: 'continue-to-close',
-        source: 'continue-chat',
-        target: 'close-chat',
-      },
-      {
-        id: 'check-to-close',
-        source: 'check-response',
-        target: 'close-chat',
+        id: 'condition-to-continue',
+        source: 'daca-raspunde',
+        target: 'continue',
       },
     ],
   },
@@ -159,22 +147,24 @@ export default function Home() {
   const [userResponseTimeout, setUserResponseTimeout] = useState<NodeJS.Timeout | null>(null);
   const deletePressed = useKeyPress('Delete');
   const backspacePressed = useKeyPress('Backspace');
+  const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
 
   const processNode = useCallback(
     async (nodeId: string) => {
       const node = nodes.find((n) => n.id === nodeId);
       if (!node) return;
 
-      // Clear any existing timeout
+      console.log('Processing node:', node); // Debug log
+
       if (userResponseTimeout) {
         clearTimeout(userResponseTimeout);
       }
 
-      // Handle different node types
       switch (node.data.type) {
         case 'message':
-          setMessages([...messages, { role: 'assistant', content: node.data.content }]);
-          // Set timeout for next node if specified
+          if (node.data.content) {
+            setMessages([...messages, { role: 'assistant' as const, content: node.data.content }]);
+          }
           if (node.data.timeout) {
             const nextEdge = edges.find((edge) => edge.source === nodeId);
             if (nextEdge) {
@@ -186,38 +176,48 @@ export default function Home() {
           }
           break;
 
-        case 'question':
-          setMessages([...messages, { role: 'assistant', content: node.data.content }]);
-          break;
-
         case 'condition':
-          // Get the last user message
-          const lastUserMessage =
-            messages
-              .filter((m) => m.role === 'user')
-              .slice(-1)[0]
-              ?.content.toLowerCase() || '';
+          const lastUserMessage = messages
+            .filter((m) => m.role === 'user')
+            .slice(-1)[0]
+            ?.content.toLowerCase();
 
-          // Check if response contains "yes" or "here"
-          const condition = node.data.condition || '';
-          const meetsCondition =
-            (condition.includes('yes') && lastUserMessage.includes('yes')) ||
-            (condition.includes('here') && lastUserMessage.includes('here'));
+          console.log('Condition check:', {
+            lastUserMessage,
+            condition: node.data.condition,
+            nodeId,
+            currentNodeId,
+          });
 
-          // Find the appropriate edge based on condition
+          if (!lastUserMessage) {
+            console.log('No user message found');
+            return;
+          }
+
+          // Check if the message contains any of our keywords
+          const hasYes =
+            lastUserMessage.includes('da') ||
+            lastUserMessage.includes('yes') ||
+            lastUserMessage.includes('ok');
+
+          console.log('Has yes:', hasYes);
+
+          // Find the appropriate edge based on the condition result
           const nextEdge = edges.find(
             (edge) =>
               edge.source === nodeId &&
-              (meetsCondition ? edge.target === 'continue-chat' : edge.target === 'close-chat')
+              (hasYes ? edge.target === 'continue' : edge.target === 'inchide-daca-nu-raspunde')
           );
+
+          console.log('Next edge:', nextEdge);
 
           if (nextEdge) {
             setCurrentNodeId(nextEdge.target);
           }
           break;
 
-        case 'action':
-          if (node.data.actionType === 'close_case') {
+        case 'timeout':
+          if (node.data.timeoutAction === 'close') {
             setMessages([
               ...messages,
               {
@@ -241,21 +241,45 @@ export default function Home() {
       clearTimeout(userResponseTimeout);
     }
 
-    const newMessages = [...messages, { role: 'user', content: input }];
+    const newMessages: Message[] = [...messages, { role: 'user' as const, content: input }];
     setMessages(newMessages);
     setInput('');
 
-    // If we're in a flow (currentNodeId exists), let the flow handle the response
+    // If we're in a flow
     if (currentNodeId) {
+      console.log('Current node ID:', currentNodeId);
       const currentNode = nodes.find((n) => n.id === currentNodeId);
+      console.log('Current node:', currentNode);
+
+      // Process condition nodes immediately
       if (currentNode?.data.type === 'condition') {
-        // For condition nodes, process the node immediately
         processNode(currentNodeId);
+        return;
+      }
+
+      // For the continue node, allow AI responses
+      if (currentNode?.id === 'continue') {
+        try {
+          const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              messages: newMessages,
+              knowledge,
+              currentNodeId,
+            }),
+          });
+
+          const data = await response.json();
+          setMessages([...newMessages, { role: 'assistant' as const, content: data.response }]);
+        } catch (error) {
+          console.error('Error:', error);
+        }
       }
       return;
     }
 
-    // If we're not in a flow, use the AI response
+    // If not in flow, use AI response
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -268,12 +292,7 @@ export default function Home() {
       });
 
       const data = await response.json();
-
-      setMessages([...newMessages, { role: 'assistant', content: data.response }]);
-
-      if (data.pattern) {
-        console.log('Pattern Analysis:', data.pattern);
-      }
+      setMessages([...newMessages, { role: 'assistant' as const, content: data.response }]);
     } catch (error) {
       console.error('Error:', error);
     }
@@ -294,7 +313,7 @@ export default function Home() {
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
-      setNodes(applyNodeChanges(changes, nodes));
+      setNodes(applyNodeChanges(changes, nodes) as ReactFlowNode<NodeData>[]);
     },
     [nodes, setNodes]
   );
@@ -313,7 +332,7 @@ export default function Home() {
     [edges, setEdges]
   );
 
-  const onSelectionChange = useCallback(({ nodes }: { nodes: Node[] }) => {
+  const onSelectionChange = useCallback(({ nodes }: { nodes: ReactFlowNode<NodeData>[] }) => {
     setSelectedNodes(nodes?.map((node) => node.id) || []);
   }, []);
 
@@ -329,7 +348,7 @@ export default function Home() {
   }, [deletePressed, backspacePressed, selectedNodes]);
 
   const addNode = () => {
-    const newNode = {
+    const newNode: ReactFlowNode<NodeData> = {
       id: `node-${nodes.length + 1}`,
       type: 'custom',
       position: { x: 100, y: 100 },
@@ -338,13 +357,6 @@ export default function Home() {
         content: '',
         type: 'message',
         timeout: 15,
-        onChange: (newData) => {
-          setNodes(
-            nodes.map((node) =>
-              node.id === newNode.id ? { ...node, data: { ...node.data, ...newData } } : node
-            )
-          );
-        },
       },
     };
     setNodes([...nodes, newNode]);
@@ -390,16 +402,15 @@ export default function Home() {
   const loadTemplate = (templateName: string) => {
     const template = flowTemplates[templateName as keyof typeof flowTemplates];
     if (template) {
-      setNodes(template.nodes);
+      setNodes(template.nodes as ReactFlowNode<NodeData>[]);
       setEdges(template.edges);
-      // Reset the chat when loading a new template
       resetChat();
       setCurrentNodeId(null);
 
-      // Start from the first node after a short delay
       setTimeout(() => {
         if (template.nodes.length > 0) {
           setCurrentNodeId(template.nodes[0].id);
+          reactFlowInstance?.fitView({ padding: 0.2 });
         }
       }, 100);
     }
@@ -427,13 +438,15 @@ export default function Home() {
           <TabsContent value="flow" className="h-[calc(100vh-8rem)] border rounded-lg">
             <div className="h-full relative">
               <ReactFlow
-                nodes={nodes.map((node) => ({
-                  ...node,
-                  data: {
-                    ...node.data,
-                    onChange: (newData) => updateNodeData(node.id, newData),
-                  },
-                }))}
+                nodes={
+                  nodes.map((node) => ({
+                    ...node,
+                    data: {
+                      ...node.data,
+                      onChange: (newData: Partial<NodeData>) => updateNodeData(node.id, newData),
+                    },
+                  })) as ReactFlowNode<NodeData>[]
+                }
                 edges={edges}
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
@@ -444,6 +457,7 @@ export default function Home() {
                 multiSelectionKeyCode="Control"
                 selectionMode={SelectionMode.Partial}
                 fitView
+                onInit={setReactFlowInstance}
               >
                 <Background />
                 <Controls />
@@ -525,7 +539,7 @@ export default function Home() {
               </ScrollArea>
               <div className="flex gap-2">
                 <Input
-                  value={input}
+                  value={input || ''}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
                   placeholder="Type your message..."
