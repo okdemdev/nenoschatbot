@@ -10,15 +10,22 @@ const nodeTypes = [
   },
   {
     type: 'wait',
-    label: 'Wait for Response',
+    label: 'Response Timer',
     icon: Clock,
-    data: { seconds: 10, timeoutMessage: 'Are you still there?' },
+    data: {
+      seconds: 10,
+      timeoutMessage: "Are you still there? I noticed you haven't responded.",
+    },
   },
   {
     type: 'action',
-    label: 'Action',
+    label: 'Send Message',
     icon: MessageSquare,
-    data: { actionType: 'send_message', message: '' },
+    data: {
+      actionType: 'send_message',
+      message: '',
+      useAI: false,
+    },
   },
 ];
 
@@ -29,7 +36,7 @@ export function NodeSelector({
 }) {
   return (
     <Card className="p-4 space-y-4">
-      <h3 className="font-semibold">Add Node</h3>
+      <h3 className="font-semibold">Flow Nodes</h3>
       <div className="space-y-2">
         {nodeTypes.map((node) => (
           <div
@@ -42,6 +49,10 @@ export function NodeSelector({
             <span>{node.label}</span>
           </div>
         ))}
+      </div>
+      <div className="text-xs text-muted-foreground mt-4">
+        <p>Tip: Connect nodes in sequence to create your conversation flow.</p>
+        <p>Example: Start Message → Response Timer → Send Message</p>
       </div>
     </Card>
   );

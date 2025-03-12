@@ -40,19 +40,62 @@ export function ChatContainer() {
   const [knowledge, setKnowledge] = useState('');
 
   // React Flow states
-  const [nodes, setNodes, onNodesChange] = useNodesState([
-    {
-      id: '1',
-      type: 'input',
-      data: { label: 'Start' },
-      position: { x: 250, y: 25 },
-    },
-  ]);
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
   const onConnect = useCallback((params: any) => {
     setEdges((eds) => addEdge(params, eds));
   }, []);
+
+  // Add a more direct delete handler
+  const handleDeleteNode = useCallback(
+    (nodeId: string) => {
+      console.log('Deleting node:', nodeId); // Debug log
+      setNodes((nodes) => nodes.filter((n) => n.id !== nodeId));
+      setEdges((edges) => edges.filter((e) => e.source !== nodeId && e.target !== nodeId));
+    },
+    [setNodes, setEdges]
+  );
+
+  const onDrop = useCallback(
+    (event: DragEvent) => {
+      event.preventDefault();
+
+      const type = event.dataTransfer.getData('application/reactflow-type');
+      const data = JSON.parse(event.dataTransfer.getData('application/reactflow-data'));
+
+      const reactFlowBounds = document.querySelector('.react-flow')?.getBoundingClientRect();
+      if (!reactFlowBounds) return;
+
+      const position = {
+        x: event.clientX - reactFlowBounds.left,
+        y: event.clientY - reactFlowBounds.top,
+      };
+
+      const nodeId = `${type}-${Date.now()}`;
+      const newNode = {
+        id: nodeId,
+        type,
+        position,
+        data: {
+          ...data,
+          id: nodeId, // Explicitly pass the id
+          useAI: false,
+          onChange: (newData: any) => {
+            setNodes((nds) =>
+              nds.map((node) =>
+                node.id === nodeId ? { ...node, data: { ...node.data, ...newData } } : node
+              )
+            );
+          },
+          handleDelete: () => handleDeleteNode(nodeId), // Use the new handler name
+        },
+      };
+
+      setNodes((nds) => nds.concat(newNode));
+    },
+    [handleDeleteNode]
+  );
 
   const sendMessage = async () => {
     if (!input.trim()) return;
@@ -87,44 +130,6 @@ export function ChatContainer() {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
   }, []);
-
-  const onDrop = useCallback(
-    (event: DragEvent) => {
-      event.preventDefault();
-
-      const type = event.dataTransfer.getData('application/reactflow-type');
-      const data = JSON.parse(event.dataTransfer.getData('application/reactflow-data'));
-
-      // Check if the drop occurred
-      const reactFlowBounds = document.querySelector('.react-flow')?.getBoundingClientRect();
-      if (!reactFlowBounds) return;
-
-      const position = {
-        x: event.clientX - reactFlowBounds.left,
-        y: event.clientY - reactFlowBounds.top,
-      };
-
-      const newNode = {
-        id: `${type}-${Date.now()}`,
-        type,
-        position,
-        data: {
-          ...data,
-          useAI: false,
-          onChange: (newData: any) => {
-            setNodes((nds) =>
-              nds.map((node) =>
-                node.id === newNode.id ? { ...node, data: { ...node.data, ...newData } } : node
-              )
-            );
-          },
-        },
-      };
-
-      setNodes((nds) => nds.concat(newNode));
-    },
-    [setNodes]
-  );
 
   const onDragStart = (event: DragEvent, nodeType: string, data: any) => {
     event.dataTransfer.setData('application/reactflow-type', nodeType);

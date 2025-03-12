@@ -17,12 +17,17 @@ class FlowEngine {
   private context: FlowContext | null = null;
   private isFlowActive: boolean = false;
   private lastMessageTime: number = 0;
+  private lastUserMessageTime: number = 0;
 
   setContext(context: FlowContext) {
     this.context = context;
     // Update last message time when new messages come in
     if (context.messages.length > 0) {
+      const lastMessage = context.messages[context.messages.length - 1];
       this.lastMessageTime = Date.now();
+      if (lastMessage.role === 'user') {
+        this.lastUserMessageTime = Date.now();
+      }
     }
   }
 
@@ -66,14 +71,16 @@ class FlowEngine {
           this.context.setMessages([{ role: 'assistant', content: node.data.message }]);
           this.lastMessageTime = Date.now();
 
-          // Continue to next nodes
-          const nextNodeIds = this.getConnectedNodes(node.id, edges);
-          for (const nodeId of nextNodeIds) {
-            const nextNode = nodes.find((n) => n.id === nodeId);
-            if (nextNode) {
-              await this.executeNode(nextNode, nodes, edges);
+          // Continue to next nodes after a short delay
+          setTimeout(() => {
+            const nextNodeIds = this.getConnectedNodes(node.id, edges);
+            for (const nodeId of nextNodeIds) {
+              const nextNode = nodes.find((n) => n.id === nodeId);
+              if (nextNode) {
+                this.executeNode(nextNode, nodes, edges);
+              }
             }
-          }
+          }, 100); // Small delay to ensure message is sent first
         }
         break;
 
@@ -84,27 +91,29 @@ class FlowEngine {
             clearTimeout(this.timers.get(node.id));
           }
 
-          // Create new timer
+          const startTime = Date.now();
           const timer = setTimeout(async () => {
             if (!this.isFlowActive) return;
 
             // Check if user has responded since timer started
-            const timeSinceLastMessage = Date.now() - this.lastMessageTime;
-            if (timeSinceLastMessage >= node.data.seconds * 1000) {
+            const hasUserResponded = this.lastUserMessageTime > startTime;
+
+            if (!hasUserResponded) {
               // No response within timeout period
               if (node.data.timeoutMessage) {
                 this.context?.setMessages((prev: Message[]) => [
                   ...prev,
                   { role: 'assistant', content: node.data.timeoutMessage },
                 ]);
-              }
+                this.lastMessageTime = Date.now();
 
-              // Continue to next nodes
-              const nextNodeIds = this.getConnectedNodes(node.id, edges);
-              for (const nodeId of nextNodeIds) {
-                const nextNode = nodes.find((n) => n.id === nodeId);
-                if (nextNode) {
-                  await this.executeNode(nextNode, nodes, edges);
+                // Continue to next nodes after sending timeout message
+                const nextNodeIds = this.getConnectedNodes(node.id, edges);
+                for (const nodeId of nextNodeIds) {
+                  const nextNode = nodes.find((n) => n.id === nodeId);
+                  if (nextNode) {
+                    await this.executeNode(nextNode, nodes, edges);
+                  }
                 }
               }
             }
@@ -135,17 +144,20 @@ class FlowEngine {
           case 'reset_chat':
             this.context.resetChat();
             this.lastMessageTime = Date.now();
+            this.lastUserMessageTime = 0;
             break;
         }
 
-        // Continue to next nodes
-        const nextNodeIds = this.getConnectedNodes(node.id, edges);
-        for (const nodeId of nextNodeIds) {
-          const nextNode = nodes.find((n) => n.id === nodeId);
-          if (nextNode) {
-            await this.executeNode(nextNode, nodes, edges);
+        // Continue to next nodes after a short delay
+        setTimeout(() => {
+          const nextNodeIds = this.getConnectedNodes(node.id, edges);
+          for (const nodeId of nextNodeIds) {
+            const nextNode = nodes.find((n) => n.id === nodeId);
+            if (nextNode) {
+              this.executeNode(nextNode, nodes, edges);
+            }
           }
-        }
+        }, 100);
         break;
     }
   }
@@ -154,6 +166,7 @@ class FlowEngine {
     // Clear any existing timers
     this.clearAllTimers();
     this.isFlowActive = true;
+    this.lastUserMessageTime = 0;
 
     // Find and execute start node
     const startNode = nodes.find((node) => node.type === 'start');
