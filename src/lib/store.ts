@@ -9,8 +9,12 @@ interface Message {
 interface NodeData {
   label: string;
   content?: string;
-  type?: 'message' | 'question' | 'response';
+  type?: 'message' | 'question' | 'condition' | 'input' | 'timeout' | 'action';
   timeout?: number;
+  timeoutAction?: 'close' | 'transfer' | 'reminder';
+  condition?: string;
+  actionType?: 'transfer_agent' | 'create_ticket' | 'send_email' | 'close_case';
+  department?: string;
   responses?: string[];
   onChange?: (newData: Partial<NodeData>) => void;
 }

@@ -24,8 +24,10 @@ export function CustomNode({ data, isConnectable }) {
           <SelectContent>
             <SelectItem value="message">Message</SelectItem>
             <SelectItem value="question">Question</SelectItem>
-            <SelectItem value="response">Response</SelectItem>
             <SelectItem value="condition">Condition</SelectItem>
+            <SelectItem value="input">User Input</SelectItem>
+            <SelectItem value="timeout">Timeout</SelectItem>
+            <SelectItem value="action">Action</SelectItem>
           </SelectContent>
         </Select>
         <div className="max-h-[200px] overflow-y-auto">
@@ -44,6 +46,59 @@ export function CustomNode({ data, isConnectable }) {
             placeholder="Timeout (seconds)"
             className="mt-2 text-sm"
           />
+        )}
+        {data.type === 'condition' && (
+          <div className="space-y-2">
+            <Input
+              value={data.condition}
+              onChange={(e) => data.onChange?.({ condition: e.target.value })}
+              placeholder="if user_response contains 'yes'"
+              className="text-sm"
+            />
+            <div className="text-xs text-muted-foreground">
+              Available variables: user_response, last_message, time_elapsed
+            </div>
+          </div>
+        )}
+        {data.type === 'timeout' && (
+          <div className="space-y-2">
+            <Input
+              type="number"
+              value={data.timeout}
+              onChange={(e) => data.onChange?.({ timeout: parseInt(e.target.value) })}
+              placeholder="Timeout in seconds"
+              className="text-sm"
+            />
+            <Select
+              value={data.timeoutAction}
+              onValueChange={(value) => data.onChange?.({ timeoutAction: value })}
+            >
+              <SelectTrigger className="text-sm">
+                <SelectValue placeholder="On timeout..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="close">Close Case</SelectItem>
+                <SelectItem value="transfer">Transfer to Agent</SelectItem>
+                <SelectItem value="reminder">Send Reminder</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        {data.type === 'action' && (
+          <Select
+            value={data.actionType}
+            onValueChange={(value) => data.onChange?.({ actionType: value })}
+          >
+            <SelectTrigger className="text-sm">
+              <SelectValue placeholder="Select action..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="transfer_agent">Transfer to Agent</SelectItem>
+              <SelectItem value="create_ticket">Create Support Ticket</SelectItem>
+              <SelectItem value="send_email">Send Email</SelectItem>
+              <SelectItem value="close_case">Close Case</SelectItem>
+            </SelectContent>
+          </Select>
         )}
       </div>
       <Handle type="source" position={Position.Bottom} isConnectable={isConnectable} />

@@ -26,6 +26,13 @@ import { Bot, BrainCircuit, MessageSquare, Plus, Send, Trash2 } from 'lucide-rea
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { CustomNode } from '@/components/CustomNode';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const nodeTypes = {
   custom: CustomNode,
@@ -45,6 +52,93 @@ interface NodeData {
   responses?: string[];
   onChange?: (newData: Partial<NodeData>) => void;
 }
+
+const flowTemplates = {
+  inactivityFlow: {
+    name: 'Inactivity Handler Flow',
+    nodes: [
+      {
+        id: 'welcome',
+        type: 'custom',
+        position: { x: 100, y: 100 },
+        data: {
+          label: 'Welcome Message',
+          content: 'Hello! Welcome to our support chat. How can I assist you today?',
+          type: 'message',
+          timeout: 10, // 10 seconds timeout
+        },
+      },
+      {
+        id: 'reminder',
+        type: 'custom',
+        position: { x: 100, y: 250 },
+        data: {
+          label: 'Reminder Message',
+          content: 'Hello! Are you still there?',
+          type: 'question',
+        },
+      },
+      {
+        id: 'check-response',
+        type: 'custom',
+        position: { x: 100, y: 400 },
+        data: {
+          label: 'Check Response',
+          type: 'condition',
+          condition: 'user_response contains "yes" or user_response contains "here"',
+        },
+      },
+      {
+        id: 'continue-chat',
+        type: 'custom',
+        position: { x: -100, y: 550 },
+        data: {
+          label: 'Continue Chat',
+          content: 'PERFECT! What can I help you with?',
+          type: 'message',
+          timeout: 15, // 15 seconds timeout
+        },
+      },
+      {
+        id: 'close-chat',
+        type: 'custom',
+        position: { x: 300, y: 550 },
+        data: {
+          label: 'Close Chat',
+          type: 'action',
+          actionType: 'close_case',
+        },
+      },
+    ],
+    edges: [
+      {
+        id: 'welcome-to-reminder',
+        source: 'welcome',
+        target: 'reminder',
+      },
+      {
+        id: 'reminder-to-check',
+        source: 'reminder',
+        target: 'check-response',
+      },
+      {
+        id: 'check-to-continue',
+        source: 'check-response',
+        target: 'continue-chat',
+      },
+      {
+        id: 'continue-to-close',
+        source: 'continue-chat',
+        target: 'close-chat',
+      },
+      {
+        id: 'check-to-close',
+        source: 'check-response',
+        target: 'close-chat',
+      },
+    ],
+  },
+};
 
 export default function Home() {
   const {
@@ -71,30 +165,73 @@ export default function Home() {
       const node = nodes.find((n) => n.id === nodeId);
       if (!node) return;
 
-      if (node.data.content) {
-        if (node.data.type === 'message') {
-          setMessages([...messages, { role: 'assistant', content: node.data.content }]);
-        } else if (node.data.type === 'question') {
-          setMessages([...messages, { role: 'assistant', content: node.data.content }]);
-          return;
-        }
-      }
-
+      // Clear any existing timeout
       if (userResponseTimeout) {
         clearTimeout(userResponseTimeout);
       }
 
-      if (node.data.type === 'message') {
-        const nextEdge = edges.find((edge) => edge.source === nodeId);
-        if (nextEdge && node.data.timeout) {
-          const timeout = setTimeout(() => {
+      // Handle different node types
+      switch (node.data.type) {
+        case 'message':
+          setMessages([...messages, { role: 'assistant', content: node.data.content }]);
+          // Set timeout for next node if specified
+          if (node.data.timeout) {
+            const nextEdge = edges.find((edge) => edge.source === nodeId);
+            if (nextEdge) {
+              const timeout = setTimeout(() => {
+                setCurrentNodeId(nextEdge.target);
+              }, node.data.timeout * 1000);
+              setUserResponseTimeout(timeout);
+            }
+          }
+          break;
+
+        case 'question':
+          setMessages([...messages, { role: 'assistant', content: node.data.content }]);
+          break;
+
+        case 'condition':
+          // Get the last user message
+          const lastUserMessage =
+            messages
+              .filter((m) => m.role === 'user')
+              .slice(-1)[0]
+              ?.content.toLowerCase() || '';
+
+          // Check if response contains "yes" or "here"
+          const condition = node.data.condition || '';
+          const meetsCondition =
+            (condition.includes('yes') && lastUserMessage.includes('yes')) ||
+            (condition.includes('here') && lastUserMessage.includes('here'));
+
+          // Find the appropriate edge based on condition
+          const nextEdge = edges.find(
+            (edge) =>
+              edge.source === nodeId &&
+              (meetsCondition ? edge.target === 'continue-chat' : edge.target === 'close-chat')
+          );
+
+          if (nextEdge) {
             setCurrentNodeId(nextEdge.target);
-          }, node.data.timeout * 1000);
-          setUserResponseTimeout(timeout);
-        }
+          }
+          break;
+
+        case 'action':
+          if (node.data.actionType === 'close_case') {
+            setMessages([
+              ...messages,
+              {
+                role: 'assistant',
+                content:
+                  'Chat has been closed due to inactivity. Please refresh to start a new chat.',
+              },
+            ]);
+            resetChat();
+          }
+          break;
       }
     },
-    [nodes, edges, messages, userResponseTimeout, setMessages, setCurrentNodeId]
+    [nodes, edges, messages, userResponseTimeout, setMessages, setCurrentNodeId, resetChat]
   );
 
   const sendMessage = async () => {
@@ -108,6 +245,17 @@ export default function Home() {
     setMessages(newMessages);
     setInput('');
 
+    // If we're in a flow (currentNodeId exists), let the flow handle the response
+    if (currentNodeId) {
+      const currentNode = nodes.find((n) => n.id === currentNodeId);
+      if (currentNode?.data.type === 'condition') {
+        // For condition nodes, process the node immediately
+        processNode(currentNodeId);
+      }
+      return;
+    }
+
+    // If we're not in a flow, use the AI response
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -120,16 +268,11 @@ export default function Home() {
       });
 
       const data = await response.json();
+
       setMessages([...newMessages, { role: 'assistant', content: data.response }]);
 
-      if (currentNodeId) {
-        const currentNode = nodes.find((n) => n.id === currentNodeId);
-        if (currentNode?.data.type === 'question') {
-          const nextEdge = edges.find((edge) => edge.source === currentNodeId);
-          if (nextEdge) {
-            setCurrentNodeId(nextEdge.target);
-          }
-        }
+      if (data.pattern) {
+        console.log('Pattern Analysis:', data.pattern);
       }
     } catch (error) {
       console.error('Error:', error);
@@ -244,6 +387,24 @@ export default function Home() {
     }, 100);
   }, [nodes, resetChat, setCurrentNodeId, userResponseTimeout]);
 
+  const loadTemplate = (templateName: string) => {
+    const template = flowTemplates[templateName as keyof typeof flowTemplates];
+    if (template) {
+      setNodes(template.nodes);
+      setEdges(template.edges);
+      // Reset the chat when loading a new template
+      resetChat();
+      setCurrentNodeId(null);
+
+      // Start from the first node after a short delay
+      setTimeout(() => {
+        if (template.nodes.length > 0) {
+          setCurrentNodeId(template.nodes[0].id);
+        }
+      }, 100);
+    }
+  };
+
   return (
     <div className="h-screen flex flex-col">
       <div className="container mx-auto p-4">
@@ -287,6 +448,18 @@ export default function Home() {
                 <Background />
                 <Controls />
                 <Panel position="top-right" className="flex gap-2">
+                  <Select onValueChange={loadTemplate}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Load template..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(flowTemplates).map(([key, template]) => (
+                        <SelectItem key={key} value={key}>
+                          {template.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Button onClick={addNode} size="sm">
                     <Plus className="w-4 h-4 mr-2" />
                     Add Node
