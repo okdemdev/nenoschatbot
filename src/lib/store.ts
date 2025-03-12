@@ -1,17 +1,25 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export interface Node {
+interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+interface NodeData {
+  label: string;
+  content?: string;
+  type?: 'message' | 'question' | 'response';
+  timeout?: number;
+  responses?: string[];
+  onChange?: (newData: Partial<NodeData>) => void;
+}
+
+export interface Node<NodeData> {
   id: string;
   type: string;
   position: { x: number; y: number };
-  data: {
-    label: string;
-    content?: string;
-    type?: 'message' | 'question' | 'response';
-    responses?: string[];
-    timeout?: number;
-  };
+  data: NodeData;
 }
 
 export interface Edge {
@@ -20,23 +28,23 @@ export interface Edge {
   target: string;
 }
 
-interface FlowState {
-  nodes: Node[];
+interface FlowStore {
+  nodes: Node<NodeData>[];
   edges: Edge[];
   knowledge: string;
   currentNodeId: string | null;
-  messages: { role: 'user' | 'assistant'; content: string }[];
-  setNodes: (nodes: Node[]) => void;
+  messages: Message[];
+  setNodes: (nodes: Node<NodeData>[]) => void;
   setEdges: (edges: Edge[]) => void;
   setKnowledge: (knowledge: string) => void;
-  setCurrentNodeId: (nodeId: string | null) => void;
-  setMessages: (messages: { role: 'user' | 'assistant'; content: string }[]) => void;
+  setCurrentNodeId: (id: string | null) => void;
+  setMessages: (messages: Message[]) => void;
   resetChat: () => void;
 }
 
-export const useFlowStore = create<FlowState>()(
+export const useFlowStore = create<FlowStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       nodes: [],
       edges: [],
       knowledge: '',

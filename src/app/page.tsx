@@ -10,6 +10,12 @@ import ReactFlow, {
   applyEdgeChanges,
   applyNodeChanges,
   useKeyPress,
+  Node,
+  Edge,
+  NodeChange,
+  EdgeChange,
+  Connection,
+  SelectionMode,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useFlowStore } from '@/lib/store';
@@ -28,6 +34,16 @@ const nodeTypes = {
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+}
+
+// Define the NodeData interface
+interface NodeData {
+  label: string;
+  content?: string;
+  type?: 'message' | 'question' | 'response';
+  timeout?: number;
+  responses?: string[];
+  onChange?: (newData: Partial<NodeData>) => void;
 }
 
 export default function Home() {
@@ -50,33 +66,36 @@ export default function Home() {
   const deletePressed = useKeyPress('Delete');
   const backspacePressed = useKeyPress('Backspace');
 
-  const processNode = async (nodeId: string) => {
-    const node = nodes.find((n) => n.id === nodeId);
-    if (!node) return;
+  const processNode = useCallback(
+    async (nodeId: string) => {
+      const node = nodes.find((n) => n.id === nodeId);
+      if (!node) return;
 
-    if (node.data.content) {
+      if (node.data.content) {
+        if (node.data.type === 'message') {
+          setMessages([...messages, { role: 'assistant', content: node.data.content }]);
+        } else if (node.data.type === 'question') {
+          setMessages([...messages, { role: 'assistant', content: node.data.content }]);
+          return;
+        }
+      }
+
+      if (userResponseTimeout) {
+        clearTimeout(userResponseTimeout);
+      }
+
       if (node.data.type === 'message') {
-        setMessages([...messages, { role: 'assistant', content: node.data.content }]);
-      } else if (node.data.type === 'question') {
-        setMessages([...messages, { role: 'assistant', content: node.data.content }]);
-        return;
+        const nextEdge = edges.find((edge) => edge.source === nodeId);
+        if (nextEdge && node.data.timeout) {
+          const timeout = setTimeout(() => {
+            setCurrentNodeId(nextEdge.target);
+          }, node.data.timeout * 1000);
+          setUserResponseTimeout(timeout);
+        }
       }
-    }
-
-    if (userResponseTimeout) {
-      clearTimeout(userResponseTimeout);
-    }
-
-    if (node.data.type === 'message') {
-      const nextEdge = edges.find((edge) => edge.source === nodeId);
-      if (nextEdge && node.data.timeout) {
-        const timeout = setTimeout(() => {
-          setCurrentNodeId(nextEdge.target);
-        }, node.data.timeout * 1000);
-        setUserResponseTimeout(timeout);
-      }
-    }
-  };
+    },
+    [nodes, edges, messages, userResponseTimeout, setMessages, setCurrentNodeId]
+  );
 
   const sendMessage = async () => {
     if (!input.trim()) return;
@@ -131,28 +150,28 @@ export default function Home() {
   }, [nodes, currentNodeId]);
 
   const onNodesChange = useCallback(
-    (changes) => {
+    (changes: NodeChange[]) => {
       setNodes(applyNodeChanges(changes, nodes));
     },
     [nodes, setNodes]
   );
 
   const onEdgesChange = useCallback(
-    (changes) => {
+    (changes: EdgeChange[]) => {
       setEdges(applyEdgeChanges(changes, edges));
     },
     [edges, setEdges]
   );
 
   const onConnect = useCallback(
-    (params) => {
+    (params: Connection) => {
       setEdges(addEdge(params, edges));
     },
     [edges, setEdges]
   );
 
-  const onSelectionChange = useCallback(({ nodes: selectedNodes }) => {
-    setSelectedNodes(selectedNodes?.map((node) => node.id) || []);
+  const onSelectionChange = useCallback(({ nodes }: { nodes: Node[] }) => {
+    setSelectedNodes(nodes?.map((node) => node.id) || []);
   }, []);
 
   useEffect(() => {
@@ -200,15 +219,30 @@ export default function Home() {
     }
   };
 
-  const updateNodeData = (nodeId, newData) => {
+  const updateNodeData = (nodeId: string, newData: Partial<NodeData>) => {
     setNodes(
       nodes.map((node) =>
-        node.id === nodeId
-          ? { ...node, data: { ...node.data, ...newData, onChange: node.data.onChange } }
-          : node
+        node.id === nodeId ? { ...node, data: { ...node.data, ...newData } } : node
       )
     );
   };
+
+  const resetChatAndFlow = useCallback(() => {
+    if (userResponseTimeout) {
+      clearTimeout(userResponseTimeout);
+      setUserResponseTimeout(null);
+    }
+
+    resetChat();
+    setCurrentNodeId(null);
+
+    setTimeout(() => {
+      if (nodes.length > 0) {
+        const startNode = nodes[0];
+        setCurrentNodeId(startNode.id);
+      }
+    }, 100);
+  }, [nodes, resetChat, setCurrentNodeId, userResponseTimeout]);
 
   return (
     <div className="h-screen flex flex-col">
@@ -247,7 +281,7 @@ export default function Home() {
                 nodeTypes={nodeTypes}
                 deleteKeyCode={['Delete', 'Backspace']}
                 multiSelectionKeyCode="Control"
-                selectionMode="partial"
+                selectionMode={SelectionMode.Partial}
                 fitView
               >
                 <Background />
@@ -290,17 +324,7 @@ export default function Home() {
           <TabsContent value="chat" className="h-[calc(100vh-8rem)]">
             <Card className="h-full p-4 flex flex-col">
               <div className="flex justify-end mb-4">
-                <Button
-                  onClick={() => {
-                    resetChat();
-                    const startNode = nodes[0];
-                    if (startNode) {
-                      setCurrentNodeId(startNode.id);
-                    }
-                  }}
-                  variant="outline"
-                  size="sm"
-                >
+                <Button onClick={resetChatAndFlow} variant="outline" size="sm">
                   Reset Chat
                 </Button>
               </div>
