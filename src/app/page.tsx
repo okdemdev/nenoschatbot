@@ -36,7 +36,7 @@ import {
 
 const nodeTypes = {
   custom: CustomNode,
-};
+} as const;
 
 interface Message {
   role: 'user' | 'assistant';
@@ -102,7 +102,7 @@ const flowTemplates = {
           timeoutAction: 'close',
         },
       },
-    ],
+    ] as ReactFlowNode<NodeData>[],
     edges: [
       {
         id: 'welcome-to-checking',
@@ -135,11 +135,13 @@ export default function Home() {
     knowledge,
     currentNodeId,
     messages,
+    flowState,
     setNodes,
     setEdges,
     setKnowledge,
     setCurrentNodeId,
     setMessages,
+    setFlowState,
     resetChat,
   } = useFlowStore();
   const [input, setInput] = useState('');
@@ -148,90 +150,121 @@ export default function Home() {
   const deletePressed = useKeyPress('Delete');
   const backspacePressed = useKeyPress('Backspace');
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
+  const [isFlowMode, setIsFlowMode] = useState(false);
 
   const processNode = useCallback(
     async (nodeId: string) => {
       const node = nodes.find((n) => n.id === nodeId);
       if (!node) return;
 
-      console.log('Processing node:', node); // Debug log
+      console.log('Processing node:', { nodeId, type: node.data.type, data: node.data });
 
+      // Clear any existing timeout
       if (userResponseTimeout) {
         clearTimeout(userResponseTimeout);
+        setUserResponseTimeout(null);
       }
+
+      // Update flow state
+      setFlowState({
+        isActive: true,
+        lastProcessedNode: nodeId,
+        awaitingResponse: false,
+      });
 
       switch (node.data.type) {
         case 'message':
           if (node.data.content) {
-            setMessages([...messages, { role: 'assistant' as const, content: node.data.content }]);
-          }
-          if (node.data.timeout) {
-            const nextEdge = edges.find((edge) => edge.source === nodeId);
-            if (nextEdge) {
-              const timeout = setTimeout(() => {
-                setCurrentNodeId(nextEdge.target);
-              }, node.data.timeout * 1000);
-              setUserResponseTimeout(timeout);
+            const currentMessages = Array.isArray(messages) ? messages : [];
+            setMessages([
+              ...currentMessages,
+              { role: 'assistant' as const, content: node.data.content },
+            ]);
+
+            if (node.data.timeout) {
+              const nextEdge = edges.find((edge) => edge.source === nodeId);
+              if (nextEdge) {
+                console.log('Setting timeout for next node:', nextEdge.target);
+                setFlowState({ awaitingResponse: true });
+                const timeout = setTimeout(() => {
+                  setCurrentNodeId(nextEdge.target);
+                  processNode(nextEdge.target);
+                }, node.data.timeout * 1000);
+                setUserResponseTimeout(timeout);
+              }
             }
           }
           break;
 
         case 'condition':
-          const lastUserMessage = messages
+          const currentMessages = Array.isArray(messages) ? messages : [];
+          const lastUserMessage = currentMessages
             .filter((m) => m.role === 'user')
             .slice(-1)[0]
             ?.content.toLowerCase();
 
-          console.log('Condition check:', {
-            lastUserMessage,
-            condition: node.data.condition,
-            nodeId,
-            currentNodeId,
-          });
+          console.log('Checking condition:', { lastUserMessage, condition: node.data.condition });
 
           if (!lastUserMessage) {
             console.log('No user message found');
+            setFlowState({ awaitingResponse: true });
             return;
           }
 
-          // Check if the message contains any of our keywords
           const hasYes =
             lastUserMessage.includes('da') ||
             lastUserMessage.includes('yes') ||
             lastUserMessage.includes('ok');
 
-          console.log('Has yes:', hasYes);
+          console.log('Condition result:', hasYes);
 
-          // Find the appropriate edge based on the condition result
           const nextEdge = edges.find(
             (edge) =>
               edge.source === nodeId &&
               (hasYes ? edge.target === 'continue' : edge.target === 'inchide-daca-nu-raspunde')
           );
 
-          console.log('Next edge:', nextEdge);
+          console.log('Selected edge:', nextEdge);
 
           if (nextEdge) {
             setCurrentNodeId(nextEdge.target);
+            processNode(nextEdge.target);
           }
           break;
 
         case 'timeout':
           if (node.data.timeoutAction === 'close') {
+            const currentMessages = Array.isArray(messages) ? messages : [];
             setMessages([
-              ...messages,
+              ...currentMessages,
               {
-                role: 'assistant',
+                role: 'assistant' as const,
                 content:
                   'Chat has been closed due to inactivity. Please refresh to start a new chat.',
               },
             ]);
+            setFlowState({
+              isActive: false,
+              awaitingResponse: false,
+              lastProcessedNode: null,
+            });
+            setIsFlowMode(false);
             resetChat();
           }
           break;
       }
     },
-    [nodes, edges, messages, userResponseTimeout, setMessages, setCurrentNodeId, resetChat]
+    [
+      nodes,
+      edges,
+      messages,
+      userResponseTimeout,
+      setMessages,
+      setCurrentNodeId,
+      resetChat,
+      setFlowState,
+      setIsFlowMode,
+    ]
   );
 
   const sendMessage = async () => {
@@ -239,20 +272,23 @@ export default function Home() {
 
     if (userResponseTimeout) {
       clearTimeout(userResponseTimeout);
+      setUserResponseTimeout(null);
     }
 
-    const newMessages: Message[] = [...messages, { role: 'user' as const, content: input }];
+    const currentMessages = Array.isArray(messages) ? messages : [];
+    const newMessages: Message[] = [...currentMessages, { role: 'user' as const, content: input }];
     setMessages(newMessages);
     setInput('');
 
     // If we're in a flow
-    if (currentNodeId) {
+    if (isFlowMode && currentNodeId) {
       console.log('Current node ID:', currentNodeId);
       const currentNode = nodes.find((n) => n.id === currentNodeId);
       console.log('Current node:', currentNode);
 
       // Process condition nodes immediately
       if (currentNode?.data.type === 'condition') {
+        setFlowState({ awaitingResponse: false });
         processNode(currentNodeId);
         return;
       }
@@ -287,7 +323,7 @@ export default function Home() {
         body: JSON.stringify({
           messages: newMessages,
           knowledge,
-          currentNodeId,
+          currentNodeId: null,
         }),
       });
 
@@ -383,38 +419,103 @@ export default function Home() {
   };
 
   const resetChatAndFlow = useCallback(() => {
+    // Clear any existing timeout
     if (userResponseTimeout) {
       clearTimeout(userResponseTimeout);
       setUserResponseTimeout(null);
     }
 
+    // Reset everything
     resetChat();
-    setCurrentNodeId(null);
+    setInput('');
 
-    setTimeout(() => {
-      if (nodes.length > 0) {
+    // If we're in flow mode and have nodes, restart the flow
+    if (isFlowMode && nodes.length > 0) {
+      setTimeout(() => {
         const startNode = nodes[0];
         setCurrentNodeId(startNode.id);
-      }
-    }, 100);
-  }, [nodes, resetChat, setCurrentNodeId, userResponseTimeout]);
+        setFlowState({
+          isActive: true,
+          awaitingResponse: false,
+          lastProcessedNode: null,
+        });
+        processNode(startNode.id);
+      }, 100);
+    }
+  }, [nodes, resetChat, setCurrentNodeId, userResponseTimeout, processNode, isFlowMode]);
 
   const loadTemplate = (templateName: string) => {
     const template = flowTemplates[templateName as keyof typeof flowTemplates];
     if (template) {
-      setNodes(template.nodes as ReactFlowNode<NodeData>[]);
-      setEdges(template.edges);
-      resetChat();
-      setCurrentNodeId(null);
+      // First clear everything
+      if (userResponseTimeout) {
+        clearTimeout(userResponseTimeout);
+        setUserResponseTimeout(null);
+      }
 
+      // Reset everything
+      setMessages([]);
+      setCurrentNodeId(null);
+      setInput('');
+      setIsFlowMode(true);
+      setFlowState({
+        isActive: true,
+        awaitingResponse: false,
+        lastProcessedNode: null,
+      });
+
+      // Then set the new template with a slight delay
       setTimeout(() => {
-        if (template.nodes.length > 0) {
-          setCurrentNodeId(template.nodes[0].id);
-          reactFlowInstance?.fitView({ padding: 0.2 });
-        }
-      }, 100);
+        setNodes(template.nodes);
+        setEdges(template.edges);
+
+        // Wait another tick before starting the flow
+        setTimeout(() => {
+          if (template.nodes.length > 0) {
+            const startNode = template.nodes[0];
+            setCurrentNodeId(startNode.id);
+            processNode(startNode.id);
+            reactFlowInstance?.fitView({ padding: 0.2 });
+          }
+        }, 50);
+      }, 50);
     }
   };
+
+  useEffect(() => {
+    return () => {
+      if (userResponseTimeout) {
+        clearTimeout(userResponseTimeout);
+      }
+    };
+  }, [userResponseTimeout]);
+
+  // Add effect to handle flow state changes
+  useEffect(() => {
+    if (flowState.isActive && !flowState.awaitingResponse && currentNodeId) {
+      const currentNode = nodes.find((n) => n.id === currentNodeId);
+      if (currentNode && currentNode.data.type === 'condition') {
+        processNode(currentNodeId);
+      }
+    }
+  }, [flowState.isActive, flowState.awaitingResponse, currentNodeId, nodes]);
+
+  // Add effect to handle timeouts
+  useEffect(() => {
+    if (flowState.awaitingResponse && currentNodeId) {
+      const currentNode = nodes.find((n) => n.id === currentNodeId);
+      if (currentNode?.data.timeout) {
+        const timeout = setTimeout(() => {
+          const nextEdge = edges.find((edge) => edge.source === currentNodeId);
+          if (nextEdge) {
+            setCurrentNodeId(nextEdge.target);
+          }
+        }, currentNode.data.timeout * 1000);
+        setUserResponseTimeout(timeout);
+        return () => clearTimeout(timeout);
+      }
+    }
+  }, [flowState.awaitingResponse, currentNodeId, nodes, edges]);
 
   return (
     <div className="h-screen flex flex-col">
@@ -510,31 +611,56 @@ export default function Home() {
 
           <TabsContent value="chat" className="h-[calc(100vh-8rem)]">
             <Card className="h-full p-4 flex flex-col">
-              <div className="flex justify-end mb-4">
-                <Button onClick={resetChatAndFlow} variant="outline" size="sm">
-                  Reset Chat
-                </Button>
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`inline-block w-2 h-2 rounded-full ${
+                      isFlowMode ? 'bg-green-500' : 'bg-blue-500'
+                    }`}
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    {isFlowMode ? 'Flow Mode' : 'AI Chat Mode'}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  {isFlowMode && (
+                    <Button
+                      onClick={() => {
+                        setIsFlowMode(false);
+                        resetChat();
+                      }}
+                      variant="outline"
+                      size="sm"
+                    >
+                      Exit Flow
+                    </Button>
+                  )}
+                  <Button onClick={resetChatAndFlow} variant="outline" size="sm">
+                    Reset Chat
+                  </Button>
+                </div>
               </div>
               <ScrollArea className="flex-1 pr-4 mb-4">
                 <div className="space-y-4">
-                  {messages.map((message, index) => (
-                    <div
-                      key={index}
-                      className={`flex ${
-                        message.role === 'user' ? 'justify-end' : 'justify-start'
-                      }`}
-                    >
+                  {Array.isArray(messages) &&
+                    messages.map((message, index) => (
                       <div
-                        className={`rounded-lg px-4 py-2 max-w-[80%] ${
-                          message.role === 'user'
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted'
+                        key={index}
+                        className={`flex ${
+                          message.role === 'user' ? 'justify-end' : 'justify-start'
                         }`}
                       >
-                        {message.content}
+                        <div
+                          className={`rounded-lg px-4 py-2 max-w-[80%] ${
+                            message.role === 'user'
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted'
+                          }`}
+                        >
+                          {message.content}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               </ScrollArea>
               <div className="flex gap-2">
