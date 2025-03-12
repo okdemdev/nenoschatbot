@@ -19,14 +19,6 @@ export default function Home() {
   const [input, setInput] = useState('');
   const [knowledge, setKnowledge] = useState('');
 
-  const clearAllStorage = () => {
-    localStorage.clear();
-    setMessages([]);
-    setInput('');
-    setKnowledge('');
-    window.location.reload();
-  };
-
   const sendMessage = async () => {
     if (!input.trim()) return;
 
@@ -59,11 +51,6 @@ export default function Home() {
   return (
     <div className="h-screen flex flex-col">
       <div className="container mx-auto p-4">
-        <div className="flex justify-end mb-4">
-          <Button onClick={clearAllStorage} variant="destructive" size="sm">
-            Clear All Data & Reset
-          </Button>
-        </div>
         <Tabs defaultValue="chat" className="h-[calc(100vh-2rem)]">
           <TabsList className="grid w-full grid-cols-2 mb-4">
             <TabsTrigger value="knowledge" className="flex items-center gap-2">
