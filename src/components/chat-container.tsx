@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, DragEvent } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -17,11 +17,19 @@ import ReactFlow, {
   addEdge,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
+import { TriggerNode } from '@/components/flow/TriggerNode';
+import { ActionNode } from '@/components/flow/ActionNode';
+import { NodeSelector } from '@/components/flow/NodeSelector';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
 }
+
+const nodeTypes = {
+  trigger: TriggerNode,
+  action: ActionNode,
+};
 
 export function ChatContainer() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -70,6 +78,54 @@ export function ChatContainer() {
   const resetChat = () => {
     setMessages([]);
     setInput('');
+  };
+
+  const onDragOver = useCallback((event: DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+  }, []);
+
+  const onDrop = useCallback(
+    (event: DragEvent) => {
+      event.preventDefault();
+
+      const type = event.dataTransfer.getData('application/reactflow-type');
+      const data = JSON.parse(event.dataTransfer.getData('application/reactflow-data'));
+
+      // Check if the drop occurred
+      const reactFlowBounds = document.querySelector('.react-flow')?.getBoundingClientRect();
+      if (!reactFlowBounds) return;
+
+      const position = {
+        x: event.clientX - reactFlowBounds.left,
+        y: event.clientY - reactFlowBounds.top,
+      };
+
+      const newNode = {
+        id: `${type}-${Date.now()}`,
+        type,
+        position,
+        data: {
+          ...data,
+          onChange: (newData: any) => {
+            setNodes((nds) =>
+              nds.map((node) =>
+                node.id === newNode.id ? { ...node, data: { ...node.data, ...newData } } : node
+              )
+            );
+          },
+        },
+      };
+
+      setNodes((nds) => nds.concat(newNode));
+    },
+    [setNodes]
+  );
+
+  const onDragStart = (event: DragEvent, nodeType: string, data: any) => {
+    event.dataTransfer.setData('application/reactflow-type', nodeType);
+    event.dataTransfer.setData('application/reactflow-data', JSON.stringify(data));
+    event.dataTransfer.effectAllowed = 'move';
   };
 
   return (
@@ -124,22 +180,28 @@ export function ChatContainer() {
           </TabsContent>
 
           <TabsContent value="flow" className="h-[calc(100vh-8rem)]">
-            <Card className="h-full">
-              <div style={{ width: '100%', height: '100%' }}>
-                <ReactFlow
-                  nodes={nodes}
-                  edges={edges}
-                  onNodesChange={onNodesChange}
-                  onEdgesChange={onEdgesChange}
-                  onConnect={onConnect}
-                  fitView
-                >
-                  <Background />
-                  <Controls />
-                  <MiniMap />
-                </ReactFlow>
-              </div>
-            </Card>
+            <div className="h-full grid grid-cols-[200px_1fr] gap-4">
+              <NodeSelector onDragStart={onDragStart} />
+              <Card className="h-full">
+                <div style={{ width: '100%', height: '100%' }}>
+                  <ReactFlow
+                    nodes={nodes}
+                    edges={edges}
+                    onNodesChange={onNodesChange}
+                    onEdgesChange={onEdgesChange}
+                    onConnect={onConnect}
+                    onDragOver={onDragOver}
+                    onDrop={onDrop}
+                    nodeTypes={nodeTypes}
+                    fitView
+                  >
+                    <Background />
+                    <Controls />
+                    <MiniMap />
+                  </ReactFlow>
+                </div>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
