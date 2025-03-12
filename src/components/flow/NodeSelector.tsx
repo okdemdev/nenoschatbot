@@ -19,7 +19,7 @@ const nodeTypes = [
   },
   {
     type: 'action',
-    label: 'Send Message',
+    label: 'Action',
     icon: MessageSquare,
     data: {
       actionType: 'send_message',
