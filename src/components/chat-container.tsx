@@ -1,13 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
-import { Bot, MessageSquare } from 'lucide-react';
+import { Bot, MessageSquare, Settings } from 'lucide-react';
 import { ChatInput } from '@/components/chat-input';
 import { ChatMessages } from '@/components/chat-messages';
+import ReactFlow, {
+  Background,
+  Controls,
+  MiniMap,
+  useNodesState,
+  useEdgesState,
+  addEdge,
+} from 'reactflow';
+import 'reactflow/dist/style.css';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -18,6 +27,21 @@ export function ChatContainer() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [knowledge, setKnowledge] = useState('');
+
+  // React Flow states
+  const [nodes, setNodes, onNodesChange] = useNodesState([
+    {
+      id: '1',
+      type: 'input',
+      data: { label: 'Start' },
+      position: { x: 250, y: 25 },
+    },
+  ]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+
+  const onConnect = useCallback((params: any) => {
+    setEdges((eds) => addEdge(params, eds));
+  }, []);
 
   const sendMessage = async () => {
     if (!input.trim()) return;
@@ -52,7 +76,7 @@ export function ChatContainer() {
     <div className="h-screen flex flex-col">
       <div className="container mx-auto p-4">
         <Tabs defaultValue="chat" className="h-[calc(100vh-2rem)]">
-          <TabsList className="grid w-full grid-cols-2 mb-4">
+          <TabsList className="grid w-full grid-cols-3 mb-4">
             <TabsTrigger value="knowledge" className="flex items-center gap-2">
               <Bot className="w-4 h-4" />
               Knowledge Base
@@ -60,6 +84,10 @@ export function ChatContainer() {
             <TabsTrigger value="chat" className="flex items-center gap-2">
               <MessageSquare className="w-4 h-4" />
               Chat
+            </TabsTrigger>
+            <TabsTrigger value="flow" className="flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              Flow Editor
             </TabsTrigger>
           </TabsList>
 
@@ -91,6 +119,25 @@ export function ChatContainer() {
               </div>
               <div className="p-4 pt-2">
                 <ChatInput input={input} onChange={setInput} onSend={sendMessage} />
+              </div>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="flow" className="h-[calc(100vh-8rem)]">
+            <Card className="h-full">
+              <div style={{ width: '100%', height: '100%' }}>
+                <ReactFlow
+                  nodes={nodes}
+                  edges={edges}
+                  onNodesChange={onNodesChange}
+                  onEdgesChange={onEdgesChange}
+                  onConnect={onConnect}
+                  fitView
+                >
+                  <Background />
+                  <Controls />
+                  <MiniMap />
+                </ReactFlow>
               </div>
             </Card>
           </TabsContent>
