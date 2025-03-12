@@ -1,0 +1,50 @@
+'use client';
+
+import { Handle, Position } from 'reactflow';
+import { Card } from './ui/card';
+import { Input } from './ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Textarea } from './ui/textarea';
+
+export function CustomNode({ data, isConnectable }) {
+  return (
+    <Card className="p-4 min-w-[200px]">
+      <Handle type="target" position={Position.Top} isConnectable={isConnectable} />
+      <div className="flex flex-col gap-2">
+        <Input
+          value={data.label}
+          onChange={(e) => data.onChange?.({ label: e.target.value })}
+          className="font-bold"
+          placeholder="Node Label"
+        />
+        <Select value={data.type} onValueChange={(value) => data.onChange?.({ type: value })}>
+          <SelectTrigger>
+            <SelectValue placeholder="Node Type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="message">Message</SelectItem>
+            <SelectItem value="question">Question</SelectItem>
+            <SelectItem value="response">Response</SelectItem>
+            <SelectItem value="condition">Condition</SelectItem>
+          </SelectContent>
+        </Select>
+        <Textarea
+          value={data.content}
+          onChange={(e) => data.onChange?.({ content: e.target.value })}
+          placeholder={data.type === 'question' ? 'Enter your question...' : 'Node Content'}
+          className="min-h-[100px]"
+        />
+        {data.type === 'message' && (
+          <Input
+            type="number"
+            value={data.timeout}
+            onChange={(e) => data.onChange?.({ timeout: parseInt(e.target.value) })}
+            placeholder="Timeout (seconds)"
+            className="mt-2"
+          />
+        )}
+      </div>
+      <Handle type="source" position={Position.Bottom} isConnectable={isConnectable} />
+    </Card>
+  );
+}
