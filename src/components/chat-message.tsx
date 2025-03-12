@@ -5,10 +5,10 @@ interface ChatMessageProps {
 
 export function ChatMessage({ role, content }: ChatMessageProps) {
   return (
-    <div className={`flex ${role === 'user' ? 'justify-end' : 'justify-start'}`}>
+    <div className={`flex ${role === 'user' ? 'justify-end' : 'justify-start'} mb-2 last:mb-0`}>
       <div
-        className={`rounded-lg px-4 py-2 max-w-[80%] break-words whitespace-pre-wrap ${
-          role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'
+        className={`rounded-2xl px-6 py-3 max-w-[85%] break-words whitespace-pre-wrap shadow-sm ${
+          role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted/50 border'
         }`}
         style={{ overflowWrap: 'break-word', wordWrap: 'break-word', hyphens: 'auto' }}
       >

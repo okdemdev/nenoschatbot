@@ -12,37 +12,47 @@ export function TriggerNode({ data, isConnectable }: any) {
     data.handleDelete?.();
   };
 
+  const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const number = parseInt(value);
+    if (!isNaN(number) && number >= 0) {
+      data.onChange?.({ seconds: number });
+    }
+  };
+
   return (
-    <Card className="p-3 min-w-[250px] relative">
+    <Card className="p-4 min-w-[280px] relative">
       <Button
         variant="ghost"
         size="icon"
-        className="h-6 w-6 absolute -top-2 -right-2 rounded-full bg-background border"
+        className="h-6 w-6 absolute -top-2 -right-2 rounded-full bg-background border shadow-sm hover:bg-muted"
         onClick={handleDelete}
       >
         <X className="h-4 w-4" />
       </Button>
-      <div className="flex items-center gap-2 mb-2">
+      <div className="flex items-center gap-2.5 mb-4">
         <Clock className="w-4 h-4" />
         <span className="font-semibold">Response Timer</span>
       </div>
       <div className="space-y-4">
         <div>
-          <Label>Wait for Response (seconds)</Label>
+          <Label className="mb-2 block">Wait for Response (seconds)</Label>
           <Input
             type="number"
+            min="0"
+            step="1"
             value={data.seconds || 10}
-            onChange={(e) => data.onChange?.({ seconds: parseInt(e.target.value) })}
+            onChange={handleNumberChange}
             className="w-full"
           />
         </div>
         <div>
-          <Label>If No Response, Send:</Label>
+          <Label className="mb-2 block">If No Response, Send:</Label>
           <Textarea
             value={data.timeoutMessage || ''}
             onChange={(e) => data.onChange?.({ timeoutMessage: e.target.value })}
             placeholder="Message to send if user doesn't respond..."
-            className="min-h-[80px]"
+            className="min-h-[100px] resize-none"
           />
         </div>
       </div>
@@ -50,13 +60,13 @@ export function TriggerNode({ data, isConnectable }: any) {
         type="target"
         position={Position.Top}
         isConnectable={isConnectable}
-        className="w-2 h-2"
+        className="w-2 h-2 !bg-muted-foreground"
       />
       <Handle
         type="source"
         position={Position.Bottom}
         isConnectable={isConnectable}
-        className="w-2 h-2"
+        className="w-2 h-2 !bg-muted-foreground"
       />
     </Card>
   );

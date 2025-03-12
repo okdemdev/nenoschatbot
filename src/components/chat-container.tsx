@@ -162,28 +162,28 @@ export function ChatContainer() {
   }, [nodes, edges]);
 
   return (
-    <div className="h-screen flex flex-col">
-      <div className="container mx-auto p-4">
-        <Tabs defaultValue="chat" className="h-[calc(100vh-2rem)]">
-          <TabsList className="grid w-full grid-cols-3 mb-4">
-            <TabsTrigger value="knowledge" className="flex items-center gap-2">
+    <div className="h-screen flex flex-col overflow-hidden">
+      <div className="container mx-auto p-4 h-full">
+        <Tabs defaultValue="chat" className="h-full flex flex-col">
+          <TabsList className="grid w-full grid-cols-3 mb-6">
+            <TabsTrigger value="knowledge" className="flex items-center gap-2.5 px-4 py-2.5">
               <Bot className="w-4 h-4" />
               Knowledge Base
             </TabsTrigger>
-            <TabsTrigger value="chat" className="flex items-center gap-2">
+            <TabsTrigger value="chat" className="flex items-center gap-2.5 px-4 py-2.5">
               <MessageSquare className="w-4 h-4" />
               Chat
             </TabsTrigger>
-            <TabsTrigger value="flow" className="flex items-center gap-2">
+            <TabsTrigger value="flow" className="flex items-center gap-2.5 px-4 py-2.5">
               <Settings className="w-4 h-4" />
               Flow Editor
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="knowledge" className="h-[calc(100vh-8rem)]">
-            <Card className="h-full p-6">
-              <h2 className="text-2xl font-bold mb-4">Knowledge Base</h2>
-              <p className="text-muted-foreground mb-4">
+          <TabsContent value="knowledge" className="flex-1 h-[calc(100%-3rem)]">
+            <Card className="h-full p-8">
+              <h2 className="text-2xl font-bold mb-6">Knowledge Base</h2>
+              <p className="text-muted-foreground mb-6">
                 Add custom knowledge that your chatbot can use when responding to questions. This
                 information will be used to provide more accurate and contextual responses.
               </p>
@@ -191,62 +191,61 @@ export function ChatContainer() {
                 placeholder="Add custom knowledge for your chatbot..."
                 value={knowledge}
                 onChange={(e) => setKnowledge(e.target.value)}
-                className="min-h-[calc(100vh-16rem)]"
+                className="min-h-[calc(100%-10rem)] resize-none"
               />
             </Card>
           </TabsContent>
 
-          <TabsContent value="chat" className="h-[calc(100vh-8rem)]">
+          <TabsContent value="chat" className="flex-1 h-[calc(100%-3rem)]">
             <Card className="h-full flex flex-col">
-              <div className="p-4 flex justify-end">
+              <div className="p-4 flex justify-end border-b">
                 <Button onClick={resetChat} variant="outline" size="sm">
                   Reset Chat
                 </Button>
               </div>
-              <div className="flex-1 min-h-0">
+              <div className="flex-1 min-h-0 px-6">
                 <ChatMessages messages={messages} />
               </div>
-              <div className="p-4 pt-2">
+              <div className="p-6 pt-4 border-t">
                 <ChatInput input={input} onChange={setInput} onSend={sendMessage} />
               </div>
             </Card>
           </TabsContent>
 
-          <TabsContent value="flow" className="h-[calc(100vh-8rem)]">
-            <div className="h-full grid grid-cols-[200px_1fr] gap-4">
-              <div className="space-y-4">
+          <TabsContent value="flow" className="flex-1 h-[calc(100%-3rem)]">
+            <div className="h-full grid grid-cols-[240px_1fr] gap-6">
+              <div className="space-y-6">
                 <NodeSelector onDragStart={onDragStart} />
                 <Card className="p-4">
-                  <Button onClick={executeFlow} className="w-full" variant="default">
+                  <Button onClick={executeFlow} className="w-full mb-3" variant="default">
                     Start Flow
                   </Button>
                   <Button
                     onClick={() => flowEngine.clearAllTimers()}
-                    className="w-full mt-2"
+                    className="w-full"
                     variant="outline"
                   >
                     Stop Flow
                   </Button>
                 </Card>
               </div>
-              <Card className="h-full">
-                <div style={{ width: '100%', height: '100%' }}>
-                  <ReactFlow
-                    nodes={nodes}
-                    edges={edges}
-                    onNodesChange={onNodesChange}
-                    onEdgesChange={onEdgesChange}
-                    onConnect={onConnect}
-                    onDragOver={onDragOver}
-                    onDrop={onDrop}
-                    nodeTypes={nodeTypes}
-                    fitView
-                  >
-                    <Background />
-                    <Controls />
-                    <MiniMap />
-                  </ReactFlow>
-                </div>
+              <Card className="h-full overflow-hidden">
+                <ReactFlow
+                  nodes={nodes}
+                  edges={edges}
+                  onNodesChange={onNodesChange}
+                  onEdgesChange={onEdgesChange}
+                  onConnect={onConnect}
+                  onDragOver={onDragOver}
+                  onDrop={onDrop}
+                  nodeTypes={nodeTypes}
+                  fitView
+                  className="h-full"
+                >
+                  <Background />
+                  <Controls />
+                  <MiniMap />
+                </ReactFlow>
               </Card>
             </div>
           </TabsContent>

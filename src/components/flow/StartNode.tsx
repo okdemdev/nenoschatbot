@@ -12,27 +12,27 @@ export function StartNode({ data, isConnectable }: any) {
   };
 
   return (
-    <Card className="p-3 min-w-[250px] relative">
+    <Card className="p-4 min-w-[280px] relative">
       <Button
         variant="ghost"
         size="icon"
-        className="h-6 w-6 absolute -top-2 -right-2 rounded-full bg-background border"
+        className="h-6 w-6 absolute -top-2 -right-2 rounded-full bg-background border shadow-sm hover:bg-muted"
         onClick={handleDelete}
       >
         <X className="h-4 w-4" />
       </Button>
-      <div className="flex items-center gap-2 mb-2">
+      <div className="flex items-center gap-2.5 mb-4">
         <Bot className="w-4 h-4" />
         <span className="font-semibold">Start Message</span>
       </div>
-      <div className="space-y-2">
+      <div className="space-y-4">
         <div>
-          <Label>Initial Greeting</Label>
+          <Label className="mb-2 block">Initial Greeting</Label>
           <Textarea
             value={data.message || ''}
             onChange={(e) => data.onChange?.({ message: e.target.value })}
             placeholder="Enter the initial AI greeting..."
-            className="min-h-[100px]"
+            className="min-h-[100px] resize-none"
           />
         </div>
       </div>
@@ -40,7 +40,7 @@ export function StartNode({ data, isConnectable }: any) {
         type="source"
         position={Position.Bottom}
         isConnectable={isConnectable}
-        className="w-2 h-2"
+        className="w-2 h-2 !bg-muted-foreground"
       />
     </Card>
   );
