@@ -1,12 +1,18 @@
 import { Card } from '@/components/ui/card';
-import { Clock, MessageSquare } from 'lucide-react';
+import { Bot, Clock, MessageSquare } from 'lucide-react';
 
 const nodeTypes = [
   {
-    type: 'trigger',
-    label: 'Time Trigger',
+    type: 'start',
+    label: 'Start Message',
+    icon: Bot,
+    data: { message: 'Hello! How can I help you today?' },
+  },
+  {
+    type: 'wait',
+    label: 'Wait for Response',
     icon: Clock,
-    data: { seconds: 10 },
+    data: { seconds: 10, timeoutMessage: 'Are you still there?' },
   },
   {
     type: 'action',

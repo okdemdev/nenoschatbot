@@ -2,6 +2,7 @@ import { Handle, Position } from 'reactflow';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -36,15 +37,25 @@ export function ActionNode({ data, isConnectable }: any) {
           </Select>
         </div>
         {data.actionType === 'send_message' && (
-          <div>
-            <Label>Message</Label>
-            <Textarea
-              value={data.message || ''}
-              onChange={(e) => data.onChange?.({ message: e.target.value })}
-              placeholder="Enter message to send..."
-              className="min-h-[100px]"
-            />
-          </div>
+          <>
+            <div>
+              <Label>Message</Label>
+              <Textarea
+                value={data.message || ''}
+                onChange={(e) => data.onChange?.({ message: e.target.value })}
+                placeholder="Enter message to send..."
+                className="min-h-[100px]"
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id={`use-ai-${data.id}`}
+                checked={data.useAI}
+                onCheckedChange={(checked) => data.onChange?.({ useAI: checked })}
+              />
+              <Label htmlFor={`use-ai-${data.id}`}>Get AI Response</Label>
+            </div>
+          </>
         )}
       </div>
       <Handle

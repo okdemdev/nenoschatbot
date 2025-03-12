@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, DragEvent } from 'react';
+import { useState, useCallback, DragEvent, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -20,6 +20,8 @@ import 'reactflow/dist/style.css';
 import { TriggerNode } from '@/components/flow/TriggerNode';
 import { ActionNode } from '@/components/flow/ActionNode';
 import { NodeSelector } from '@/components/flow/NodeSelector';
+import { flowEngine } from '@/services/flowEngine';
+import { StartNode } from '@/components/flow/StartNode';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -27,7 +29,8 @@ interface Message {
 }
 
 const nodeTypes = {
-  trigger: TriggerNode,
+  start: StartNode,
+  wait: TriggerNode,
   action: ActionNode,
 };
 
@@ -107,6 +110,7 @@ export function ChatContainer() {
         position,
         data: {
           ...data,
+          useAI: false,
           onChange: (newData: any) => {
             setNodes((nds) =>
               nds.map((node) =>
@@ -127,6 +131,30 @@ export function ChatContainer() {
     event.dataTransfer.setData('application/reactflow-data', JSON.stringify(data));
     event.dataTransfer.effectAllowed = 'move';
   };
+
+  // Set up flow engine context with knowledge
+  useEffect(() => {
+    const updateContext = () => {
+      flowEngine.setContext({
+        setMessages: (newMessages) => setMessages(newMessages),
+        resetChat,
+        messages,
+        knowledge,
+      });
+    };
+    updateContext();
+  }, [knowledge, messages, resetChat]);
+
+  // Clean up timers when component unmounts
+  useEffect(() => {
+    return () => {
+      flowEngine.clearAllTimers();
+    };
+  }, []);
+
+  const executeFlow = useCallback(() => {
+    flowEngine.executeFlow(nodes, edges);
+  }, [nodes, edges]);
 
   return (
     <div className="h-screen flex flex-col">
@@ -181,7 +209,21 @@ export function ChatContainer() {
 
           <TabsContent value="flow" className="h-[calc(100vh-8rem)]">
             <div className="h-full grid grid-cols-[200px_1fr] gap-4">
-              <NodeSelector onDragStart={onDragStart} />
+              <div className="space-y-4">
+                <NodeSelector onDragStart={onDragStart} />
+                <Card className="p-4">
+                  <Button onClick={executeFlow} className="w-full" variant="default">
+                    Start Flow
+                  </Button>
+                  <Button
+                    onClick={() => flowEngine.clearAllTimers()}
+                    className="w-full mt-2"
+                    variant="outline"
+                  >
+                    Stop Flow
+                  </Button>
+                </Card>
+              </div>
               <Card className="h-full">
                 <div style={{ width: '100%', height: '100%' }}>
                   <ReactFlow
