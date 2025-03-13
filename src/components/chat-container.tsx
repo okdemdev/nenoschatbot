@@ -5,7 +5,22 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
-import { Bot, MessageSquare, Settings } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import {
+  Bot,
+  MessageSquare,
+  Settings,
+  Globe2,
+  FileText,
+  Upload,
+  Download,
+  PenTool,
+  CircleDot,
+  Database,
+  Link,
+  BrainCircuit,
+} from 'lucide-react';
 import { ChatInput } from '@/components/chat-input';
 import { ChatMessages } from '@/components/chat-messages';
 import ReactFlow, {
@@ -191,17 +206,110 @@ export function ChatContainer() {
 
           <TabsContent value="knowledge" className="flex-1 h-[calc(100%-3rem)] mt-0">
             <Card className="h-full p-8">
-              <h2 className="text-2xl font-bold mb-6">Knowledge Base</h2>
-              <p className="text-muted-foreground mb-6">
-                Add custom knowledge that your chatbot can use when responding to questions. This
-                information will be used to provide more accurate and contextual responses.
-              </p>
-              <Textarea
-                placeholder="Add custom knowledge for your chatbot..."
-                value={knowledge}
-                onChange={(e) => setKnowledge(e.target.value)}
-                className="min-h-[calc(100%-10rem)] resize-none"
-              />
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold">Knowledge Base</h2>
+                <Button variant="outline" size="sm" className="text-muted-foreground">
+                  <Settings className="w-4 h-4 mr-2" />
+                  Settings
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                {/* Website URL Import Section */}
+                <Card className="p-4 border-2 border-dashed relative">
+                  <Badge className="absolute top-3 right-3 bg-primary/10 text-primary hover:bg-primary/20">
+                    Coming Next
+                  </Badge>
+                  <h3 className="font-semibold mb-2 flex items-center gap-2">
+                    <Globe2 className="w-4 h-4" />
+                    Import from Website
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Add knowledge by importing content from a website's sitemap
+                  </p>
+                  <div className="space-y-4">
+                    <Input
+                      placeholder="Enter website URL..."
+                      className="w-full bg-muted/5"
+                      disabled
+                    />
+                    <Button className="w-full" disabled>
+                      <Download className="w-4 h-4 mr-2" />
+                      Import Sitemap
+                    </Button>
+                  </div>
+                </Card>
+
+                {/* File Upload Section (Coming Next) */}
+                <Card className="p-4 border-2 border-dashed relative">
+                  <Badge className="absolute top-3 right-3 bg-primary/10 text-primary hover:bg-primary/20">
+                    Coming Next
+                  </Badge>
+                  <h3 className="font-semibold mb-2 flex items-center gap-2">
+                    <FileText className="w-4 h-4" />
+                    Upload Documents
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Support for PDF, DOCX, XLSX, and more file formats
+                  </p>
+                  <div className="border-2 border-dashed rounded-lg p-6 text-center bg-muted/5">
+                    <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">
+                      Drag & drop files or click to upload
+                    </p>
+                  </div>
+                </Card>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold flex items-center gap-2">
+                    <PenTool className="w-4 h-4" />
+                    Custom Knowledge
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs">
+                      <CircleDot className="w-3 h-3 mr-1 text-green-500" />
+                      Active
+                    </Badge>
+                  </div>
+                </div>
+                <Textarea
+                  placeholder="Add custom knowledge for your chatbot..."
+                  value={knowledge}
+                  onChange={(e) => setKnowledge(e.target.value)}
+                  className="min-h-[200px] resize-none"
+                />
+              </div>
+
+              <div className="mt-6 pt-6 border-t">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold">Coming Next</h3>
+                  <Badge variant="outline" className="text-xs">
+                    In Development
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <Card className="p-3 bg-muted/5 border border-dashed">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4" />
+                      <span className="text-sm">CSV Import</span>
+                    </div>
+                  </Card>
+                  <Card className="p-3 bg-muted/5 border border-dashed">
+                    <div className="flex items-center gap-2">
+                      <Link className="w-4 h-4" />
+                      <span className="text-sm">API Integration</span>
+                    </div>
+                  </Card>
+                  <Card className="p-3 bg-muted/5 border border-dashed">
+                    <div className="flex items-center gap-2">
+                      <BrainCircuit className="w-4 h-4" />
+                      <span className="text-sm">Knowledge Graph</span>
+                    </div>
+                  </Card>
+                </div>
+              </div>
             </Card>
           </TabsContent>
 
