@@ -2,6 +2,10 @@
 
 A Next.js application featuring a chatbot with knowledge base management and visual flow editor.
 
+## Live Demo
+
+Visit the live demo at: [https://nenoschatbot.vercel.app/](https://nenoschatbot.vercel.app/)
+
 ## Setup
 
 1. Clone the repository
