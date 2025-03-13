@@ -303,7 +303,7 @@ export function ChatContainer() {
               </div>
               <div className="flex-1 relative">
                 {chatClosed ? (
-                  <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+                  <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-10">
                     <div className="text-center space-y-4">
                       <div className="p-3 bg-muted inline-block rounded-full">
                         <MessageSquare className="w-6 h-6 text-muted-foreground" />
@@ -312,7 +312,14 @@ export function ChatContainer() {
                         <h3 className="font-semibold mb-1">Chat Closed</h3>
                         <p className="text-sm text-muted-foreground">This conversation has ended</p>
                       </div>
-                      <Button onClick={resetChat} variant="outline" size="sm">
+                      <Button
+                        onClick={() => {
+                          resetChat();
+                          setChatClosed(false);
+                        }}
+                        variant="outline"
+                        size="sm"
+                      >
                         Start New Chat
                       </Button>
                     </div>
