@@ -53,6 +53,7 @@ export function ChatContainer() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [knowledge, setKnowledge] = useState('');
+  const [flowActive, setFlowActive] = useState(false);
 
   // React Flow states
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -173,8 +174,14 @@ export function ChatContainer() {
   }, []);
 
   const executeFlow = useCallback(() => {
+    setFlowActive(true);
     flowEngine.executeFlow(nodes, edges);
   }, [nodes, edges]);
+
+  const stopFlow = () => {
+    setFlowActive(false);
+    flowEngine.clearAllTimers();
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -336,16 +343,30 @@ export function ChatContainer() {
               <div className="space-y-6">
                 <NodeSelector onDragStart={onDragStart} />
                 <Card className="p-4">
-                  <Button onClick={executeFlow} className="w-full mb-3" variant="default">
-                    Start Flow
-                  </Button>
-                  <Button
-                    onClick={() => flowEngine.clearAllTimers()}
-                    className="w-full"
-                    variant="outline"
-                  >
-                    Stop Flow
-                  </Button>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div
+                      className={`h-2 w-2 rounded-full ${
+                        flowActive ? 'bg-green-500 animate-pulse' : 'bg-gray-300'
+                      }`}
+                    />
+                    <span className="text-sm text-muted-foreground">Flow Status</span>
+                  </div>
+                  <div className="space-y-0">
+                    <Button
+                      onClick={executeFlow}
+                      className="w-full rounded-b-none"
+                      variant="default"
+                    >
+                      Start Flow
+                    </Button>
+                    <Button
+                      onClick={stopFlow}
+                      className="w-full rounded-t-none border-t-0"
+                      variant="outline"
+                    >
+                      Stop Flow
+                    </Button>
+                  </div>
                 </Card>
               </div>
               <Card className="h-full overflow-hidden">
