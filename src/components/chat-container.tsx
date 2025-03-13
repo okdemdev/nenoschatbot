@@ -187,7 +187,7 @@ export function ChatContainer() {
     <div className="min-h-screen flex flex-col">
       <div className="container mx-auto p-4 flex-1">
         <Tabs defaultValue="chat" className="flex flex-col h-full">
-          <TabsList className="w-full mb-6 bg-muted/50 p-1 rounded-lg flex gap-1 sticky top-0 z-10">
+          <TabsList className="w-full mb-6  p-1 rounded-lg flex gap-1 sticky top-0 z-10">
             <TabsTrigger
               value="knowledge"
               className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-md data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm"
@@ -287,35 +287,6 @@ export function ChatContainer() {
                     </p>
                   </div>
                 </Card>
-              </div>
-
-              <div className="mt-6 pt-6 border-t">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold">Coming Next</h3>
-                  <Badge variant="outline" className="text-xs">
-                    In Development
-                  </Badge>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <Card className="p-3 bg-muted/5 border border-dashed">
-                    <div className="flex items-center gap-2">
-                      <FileText className="w-4 h-4" />
-                      <span className="text-sm">CSV Import</span>
-                    </div>
-                  </Card>
-                  <Card className="p-3 bg-muted/5 border border-dashed">
-                    <div className="flex items-center gap-2">
-                      <Link className="w-4 h-4" />
-                      <span className="text-sm">API Integration</span>
-                    </div>
-                  </Card>
-                  <Card className="p-3 bg-muted/5 border border-dashed">
-                    <div className="flex items-center gap-2">
-                      <BrainCircuit className="w-4 h-4" />
-                      <span className="text-sm">Knowledge Graph</span>
-                    </div>
-                  </Card>
-                </div>
               </div>
             </Card>
           </TabsContent>
