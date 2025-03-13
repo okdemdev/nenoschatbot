@@ -303,8 +303,8 @@ export function ChatContainer() {
               </div>
               <div className="flex-1 relative">
                 {chatClosed ? (
-                  <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-10">
-                    <div className="text-center space-y-4">
+                  <div className="absolute inset-0 flex items-center justify-center bg-background/25 backdrop-blur-[2px] z-10">
+                    <div className="text-center space-y-4 bg-background/25 p-6 rounded-lg shadow-sm">
                       <div className="p-3 bg-muted inline-block rounded-full">
                         <MessageSquare className="w-6 h-6 text-muted-foreground" />
                       </div>
