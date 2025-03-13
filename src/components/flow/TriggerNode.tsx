@@ -41,9 +41,10 @@ export function TriggerNode({ data, isConnectable }: any) {
             type="number"
             min="0"
             step="1"
-            value={data.seconds || 10}
+            value={data.seconds || ''}
             onChange={handleNumberChange}
             className="w-full"
+            placeholder="Enter seconds..."
           />
         </div>
         <div>
