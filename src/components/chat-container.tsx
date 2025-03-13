@@ -320,8 +320,10 @@ export function ChatContainer() {
                   Reset Chat
                 </Button>
               </div>
-              <div className="flex-1 min-h-0 px-6">
-                <ChatMessages messages={messages} />
+              <div className="flex-1 relative">
+                <div className="absolute inset-0 px-6 overflow-y-auto">
+                  <ChatMessages messages={messages} />
+                </div>
               </div>
               <div className="p-6 pt-4 border-t">
                 <ChatInput input={input} onChange={setInput} onSend={sendMessage} />
