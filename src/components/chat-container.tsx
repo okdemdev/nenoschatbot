@@ -142,6 +142,15 @@ export function ChatContainer() {
     setMessages([]);
     setInput('');
     setChatClosed(false);
+
+    // If flow was active, restart it
+    if (flowActive) {
+      flowEngine.clearAllTimers();
+      // Small delay to ensure the chat is cleared before restarting
+      setTimeout(() => {
+        flowEngine.executeFlow(nodes, edges);
+      }, 100);
+    }
   };
 
   const onDragOver = useCallback((event: DragEvent) => {
