@@ -11,7 +11,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { MessageSquare, X } from 'lucide-react';
+import { MessageSquare, X, XCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 export function ActionNode({ data, isConnectable }: any) {
   const handleDelete = () => {
@@ -29,8 +30,17 @@ export function ActionNode({ data, isConnectable }: any) {
         <X className="h-4 w-4" />
       </Button>
       <div className="flex items-center gap-2.5 mb-4">
-        <MessageSquare className="w-4 h-4" />
+        {data.actionType === 'close_chat' ? (
+          <XCircle className="w-4 h-4 text-destructive" />
+        ) : (
+          <MessageSquare className="w-4 h-4" />
+        )}
         <span className="font-semibold">Action</span>
+        {data.actionType === 'close_chat' && (
+          <Badge variant="destructive" className="ml-auto text-xs">
+            Closes Chat
+          </Badge>
+        )}
       </div>
       <div className="space-y-4">
         <div>
@@ -69,6 +79,11 @@ export function ActionNode({ data, isConnectable }: any) {
               <Label htmlFor={`use-ai-${data.id}`}>Get AI Response</Label>
             </div>
           </>
+        )}
+        {data.actionType === 'close_chat' && (
+          <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+            This action will close the chat and show a closed state overlay.
+          </div>
         )}
       </div>
       <Handle

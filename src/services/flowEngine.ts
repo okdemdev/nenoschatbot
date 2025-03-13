@@ -6,10 +6,11 @@ interface Message {
 }
 
 export interface FlowContext {
+  messages: Message[];
   setMessages: (messages: Message[] | ((prev: Message[]) => Message[])) => void;
   resetChat: () => void;
-  messages: Message[];
   knowledge: string;
+  setChatClosed: (closed: boolean) => void;
 }
 
 class FlowEngine {
@@ -68,7 +69,10 @@ class FlowEngine {
     switch (node.type) {
       case 'start':
         if (node.data.message) {
-          this.context.setMessages([{ role: 'assistant', content: node.data.message }]);
+          this.context.setMessages((prev: Message[]) => [
+            ...prev,
+            { role: 'assistant', content: node.data.message },
+          ]);
           this.lastMessageTime = Date.now();
 
           // Continue to next nodes after a short delay
@@ -126,7 +130,10 @@ class FlowEngine {
       case 'action':
         switch (node.data.actionType) {
           case 'send_message':
-            if (node.data.message) {
+            if (node.data.useAI) {
+              // Handle AI response
+              // ... existing AI handling code ...
+            } else if (node.data.message) {
               this.context.setMessages((prev: Message[]) => [
                 ...prev,
                 { role: 'assistant', content: node.data.message },
@@ -138,8 +145,9 @@ class FlowEngine {
             this.clearAllTimers();
             this.context.setMessages((prev: Message[]) => [
               ...prev,
-              { role: 'assistant', content: 'Chat session ended.' },
+              { role: 'assistant', content: 'Chat has been closed.' },
             ]);
+            this.context.setChatClosed(true);
             break;
           case 'reset_chat':
             this.context.resetChat();

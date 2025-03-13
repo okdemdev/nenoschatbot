@@ -54,6 +54,7 @@ export function ChatContainer() {
   const [input, setInput] = useState('');
   const [knowledge, setKnowledge] = useState('');
   const [flowActive, setFlowActive] = useState(false);
+  const [chatClosed, setChatClosed] = useState(false);
 
   // React Flow states
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -140,6 +141,7 @@ export function ChatContainer() {
   const resetChat = () => {
     setMessages([]);
     setInput('');
+    setChatClosed(false);
   };
 
   const onDragOver = useCallback((event: DragEvent) => {
@@ -161,6 +163,7 @@ export function ChatContainer() {
         resetChat,
         messages,
         knowledge,
+        setChatClosed: (closed: boolean) => setChatClosed(closed),
       });
     };
     updateContext();
@@ -299,12 +302,33 @@ export function ChatContainer() {
                 </Button>
               </div>
               <div className="flex-1 relative">
+                {chatClosed ? (
+                  <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+                    <div className="text-center space-y-4">
+                      <div className="p-3 bg-muted inline-block rounded-full">
+                        <MessageSquare className="w-6 h-6 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold mb-1">Chat Closed</h3>
+                        <p className="text-sm text-muted-foreground">This conversation has ended</p>
+                      </div>
+                      <Button onClick={resetChat} variant="outline" size="sm">
+                        Start New Chat
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
                 <div className="absolute inset-0 px-6 overflow-y-auto">
                   <ChatMessages messages={messages} />
                 </div>
               </div>
               <div className="p-6 pt-4 border-t">
-                <ChatInput input={input} onChange={setInput} onSend={sendMessage} />
+                <ChatInput
+                  input={input}
+                  onChange={setInput}
+                  onSend={sendMessage}
+                  disabled={chatClosed}
+                />
               </div>
             </Card>
           </TabsContent>
