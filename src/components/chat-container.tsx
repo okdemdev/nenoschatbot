@@ -165,22 +165,31 @@ export function ChatContainer() {
     <div className="h-screen flex flex-col overflow-hidden">
       <div className="container mx-auto p-4 h-full">
         <Tabs defaultValue="chat" className="h-full flex flex-col">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
-            <TabsTrigger value="knowledge" className="flex items-center gap-2.5 px-4 py-2.5">
+          <TabsList className="w-full mb-6 bg-muted/50 p-1 rounded-lg flex gap-1">
+            <TabsTrigger
+              value="knowledge"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-md data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+            >
               <Bot className="w-4 h-4" />
               Knowledge Base
             </TabsTrigger>
-            <TabsTrigger value="chat" className="flex items-center gap-2.5 px-4 py-2.5">
+            <TabsTrigger
+              value="chat"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-md data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+            >
               <MessageSquare className="w-4 h-4" />
               Chat
             </TabsTrigger>
-            <TabsTrigger value="flow" className="flex items-center gap-2.5 px-4 py-2.5">
+            <TabsTrigger
+              value="flow"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-md data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+            >
               <Settings className="w-4 h-4" />
               Flow Editor
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="knowledge" className="flex-1 h-[calc(100%-3rem)]">
+          <TabsContent value="knowledge" className="flex-1 h-[calc(100%-3rem)] mt-0">
             <Card className="h-full p-8">
               <h2 className="text-2xl font-bold mb-6">Knowledge Base</h2>
               <p className="text-muted-foreground mb-6">
