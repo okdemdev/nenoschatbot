@@ -177,10 +177,10 @@ export function ChatContainer() {
   }, [nodes, edges]);
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden">
-      <div className="container mx-auto p-4 h-full">
-        <Tabs defaultValue="chat" className="h-full flex flex-col">
-          <TabsList className="w-full mb-6 bg-muted/50 p-1 rounded-lg flex gap-1">
+    <div className="min-h-screen flex flex-col">
+      <div className="container mx-auto p-4 flex-1">
+        <Tabs defaultValue="chat" className="flex flex-col h-full">
+          <TabsList className="w-full mb-6 bg-muted/50 p-1 rounded-lg flex gap-1 sticky top-0 z-10">
             <TabsTrigger
               value="knowledge"
               className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-md data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm"
@@ -204,14 +204,35 @@ export function ChatContainer() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="knowledge" className="flex-1 h-[calc(100%-3rem)] mt-0">
-            <Card className="h-full p-8">
+          <TabsContent value="knowledge" className="flex-1 mt-0">
+            <Card className="min-h-[calc(100vh-8rem)] p-8">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold">Knowledge Base</h2>
                 <Button variant="outline" size="sm" className="text-muted-foreground">
                   <Settings className="w-4 h-4 mr-2" />
                   Settings
                 </Button>
+              </div>
+
+              <div className="space-y-4 mb-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold flex items-center gap-2">
+                    <PenTool className="w-4 h-4" />
+                    Custom Knowledge
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs">
+                      <CircleDot className="w-3 h-3 mr-1 text-green-500" />
+                      Active
+                    </Badge>
+                  </div>
+                </div>
+                <Textarea
+                  placeholder="Add custom knowledge for your chatbot..."
+                  value={knowledge}
+                  onChange={(e) => setKnowledge(e.target.value)}
+                  className="min-h-[200px] resize-none"
+                />
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -261,27 +282,6 @@ export function ChatContainer() {
                 </Card>
               </div>
 
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold flex items-center gap-2">
-                    <PenTool className="w-4 h-4" />
-                    Custom Knowledge
-                  </h3>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-xs">
-                      <CircleDot className="w-3 h-3 mr-1 text-green-500" />
-                      Active
-                    </Badge>
-                  </div>
-                </div>
-                <Textarea
-                  placeholder="Add custom knowledge for your chatbot..."
-                  value={knowledge}
-                  onChange={(e) => setKnowledge(e.target.value)}
-                  className="min-h-[200px] resize-none"
-                />
-              </div>
-
               <div className="mt-6 pt-6 border-t">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold">Coming Next</h3>
@@ -313,8 +313,8 @@ export function ChatContainer() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="chat" className="flex-1 h-[calc(100%-3rem)]">
-            <Card className="h-full flex flex-col">
+          <TabsContent value="chat" className="flex-1 mt-0">
+            <Card className="min-h-[calc(100vh-8rem)] flex flex-col">
               <div className="p-4 flex justify-end border-b">
                 <Button onClick={resetChat} variant="outline" size="sm">
                   Reset Chat
@@ -329,8 +329,8 @@ export function ChatContainer() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="flow" className="flex-1 h-[calc(100%-3rem)]">
-            <div className="h-full grid grid-cols-[240px_1fr] gap-6">
+          <TabsContent value="flow" className="flex-1 mt-0">
+            <div className="min-h-[calc(100vh-8rem)] grid grid-cols-[240px_1fr] gap-6">
               <div className="space-y-6">
                 <NodeSelector onDragStart={onDragStart} />
                 <Card className="p-4">
