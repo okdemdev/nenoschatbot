@@ -1,58 +1,47 @@
 import { Card } from '@/components/ui/card';
-import { Bot, Clock, MessageSquare } from 'lucide-react';
+import { MessageSquare, Timer, Clock, Play } from 'lucide-react';
 
-const nodeTypes = [
-  {
-    type: 'start',
-    label: 'Start Message',
-    icon: Bot,
-    data: { message: 'Hello! How can I help you today?' },
-  },
-  {
-    type: 'wait',
-    label: 'Response Timer',
-    icon: Clock,
-    data: {
-      seconds: 10,
-      timeoutMessage: "Are you still there? I noticed you haven't responded.",
-    },
-  },
-  {
-    type: 'action',
-    label: 'Action',
-    icon: MessageSquare,
-    data: {
-      actionType: 'send_message',
-      message: '',
-      useAI: false,
-    },
-  },
-];
+export function NodeSelector({ onDragStart }: { onDragStart: any }) {
+  const onDragStartHandler = (event: React.DragEvent, nodeType: string, data: any = {}) => {
+    onDragStart(event, nodeType, data);
+  };
 
-export function NodeSelector({
-  onDragStart,
-}: {
-  onDragStart: (event: React.DragEvent, nodeType: string, data: any) => void;
-}) {
   return (
-    <Card className="p-4 space-y-4">
-      <h3 className="font-semibold">Flow Nodes</h3>
+    <Card className="p-4">
+      <h3 className="font-semibold mb-3">Add Node</h3>
       <div className="space-y-2">
-        {nodeTypes.map((node) => (
-          <div
-            key={node.type}
-            className="flex items-center gap-2 p-2 rounded-md border cursor-grab hover:bg-accent"
-            draggable
-            onDragStart={(e) => onDragStart(e, node.type, node.data)}
-          >
-            <node.icon className="w-4 h-4" />
-            <span>{node.label}</span>
-          </div>
-        ))}
-      </div>
-      <div className="text-xs text-muted-foreground mt-4">
-        <p>Tip: Connect nodes in sequence to create your conversation flow.</p>
-        <p>Example: Start Message → Response Timer → Send Message</p>
+        <div
+          className="flex items-center gap-2 p-3 rounded-md border-2 border-dashed hover:border-solid cursor-move"
+          draggable
+          onDragStart={(e) => onDragStartHandler(e, 'start')}
+        >
+          <Play className="w-4 h-4" />
+          <span className="text-sm">Start</span>
+        </div>
+        <div
+          className="flex items-center gap-2 p-3 rounded-md border-2 border-dashed hover:border-solid cursor-move"
+          draggable
+          onDragStart={(e) => onDragStartHandler(e, 'action')}
+        >
+          <MessageSquare className="w-4 h-4" />
+          <span className="text-sm">Action</span>
+        </div>
+        <div
+          className="flex items-center gap-2 p-3 rounded-md border-2 border-dashed hover:border-solid cursor-move"
+          draggable
+          onDragStart={(e) => onDragStartHandler(e, 'wait')}
+        >
+          <Clock className="w-4 h-4" />
+          <span className="text-sm">Wait</span>
+        </div>
+        <div
+          className="flex items-center gap-2 p-3 rounded-md border-2 border-dashed hover:border-solid cursor-move"
+          draggable
+          onDragStart={(e) => onDragStartHandler(e, 'timer')}
+        >
+          <Timer className="w-4 h-4 text-orange-500" />
+          <span className="text-sm">Timer</span>
+        </div>
       </div>
     </Card>
   );

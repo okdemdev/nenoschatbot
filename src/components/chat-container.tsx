@@ -37,6 +37,7 @@ import { ActionNode } from '@/components/flow/ActionNode';
 import { NodeSelector } from '@/components/flow/NodeSelector';
 import { flowEngine } from '@/services/flowEngine';
 import { StartNode } from '@/components/flow/StartNode';
+import { TimerNode } from '@/components/flow/TimerNode';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -47,6 +48,7 @@ const nodeTypes = {
   start: StartNode,
   wait: TriggerNode,
   action: ActionNode,
+  timer: TimerNode,
 };
 
 export function ChatContainer() {
